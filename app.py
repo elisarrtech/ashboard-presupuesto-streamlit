@@ -1,24 +1,17 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import io
-from pandas import ExcelWriter
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from datetime import date
+import json
+import streamlit as st  # Asegúrate de que esto esté al inicio también
 
-# ---------------- CONFIGURACIÓN DE LA APP ----------------
-st.set_page_config(page_title="Dashboard Presupuesto", layout="wide")
-st.title("📊 Dashboard de Presupuesto Anual")
-st.markdown("---")
-
-# ---------------- FUNCIÓN PARA GUARDAR EN GOOGLE SHEETS ----------------
 def guardar_en_google_sheets(datos: dict):
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+
+    # Leer el secreto desde Streamlit Cloud
+    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
 
     SHEET_ID = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
@@ -36,6 +29,7 @@ def guardar_en_google_sheets(datos: dict):
         datos["Total c/IVA"],
     ]
     sheet.append_row(fila, value_input_option="USER_ENTERED")
+
 
 # ---------------- CARGA DE ARCHIVO ----------------
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type=["csv"])
