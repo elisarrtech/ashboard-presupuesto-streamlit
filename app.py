@@ -85,7 +85,11 @@ if submitted:
     nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
     nuevo["Total c/IVA"] = monto + nuevo["IVA"]
     df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
-    st.success("✅ Concepto agregado correctamente")
+    
+    guardar_en_google_sheets(nuevo)
+
+    st.success("✅ Concepto agregado y guardado en Google Sheets")
+
 
 # Filtros
 with st.sidebar:
