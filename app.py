@@ -1,6 +1,9 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import io
+from pandas import ExcelWriter
 
 st.set_page_config(page_title="Dashboard Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto Anual")
@@ -53,22 +56,15 @@ st.subheader("📊 Comparativa por Categoría")
 fig2 = px.bar(filtered_df, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales con IVA por Categoría")
 st.plotly_chart(fig2, use_container_width=True)
 
-import io
-from pandas import ExcelWriter
-
-# Crear buffer en memoria
+# Botón para exportar a Excel
 buffer = io.BytesIO()
-
-# Escribir a Excel en memoria
 with ExcelWriter(buffer, engine='xlsxwriter') as writer:
     filtered_df.to_excel(writer, index=False, sheet_name="Presupuesto")
     writer.close()
 
-# Mostrar botón de descarga
 st.download_button(
     label="⬇ Descargar presupuesto filtrado en Excel",
     data=buffer.getvalue(),
     file_name="presupuesto_filtrado.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
-
