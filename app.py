@@ -1,12 +1,13 @@
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import json
-import streamlit as st  # Asegúrate de que esto esté al inicio también
 import pandas as pd
 import plotly.express as px
 import io
 from pandas import ExcelWriter
-from datetime import date  # NECESARIO para usar date.today()
+from datetime import date
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import json
+import streamlit as st  # Asegúrate de que esto esté al inicio también
+
 
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 
