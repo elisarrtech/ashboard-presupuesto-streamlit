@@ -153,23 +153,44 @@ with tab1:
         filtered_df.to_excel(writer, index=False, sheet_name="Presupuesto")
     st.download_button("⬇ Descargar presupuesto filtrado en Excel", data=buffer.getvalue(), file_name="presupuesto_filtrado.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-# ---------------- HISTORIAL ----------------
-with tab2:
-    st.subheader("📁 Historial de Conceptos Guardados")
-    df_hist = cargar_historial_google_sheets()
+# ---------------- HISTORIAL DIARIO ----------------
+with st.tabs(["📊 Dashboard Actual", "🗃 Historial de Conceptos Guardados"])[1]:
+    st.header("📁 Historial de Conceptos Guardados")
 
-    if df_hist.empty:
-        st.info("ℹ️ No hay datos en el historial aún.")
-    else:
-        year_hist = st.selectbox("Filtrar por Año", sorted(df_hist["Año"].unique()), key="hist_anio")
-        categoria_hist = st.multiselect("Filtrar por Categoría", df_hist["Categoría"].unique(), default=df_hist["Categoría"].unique(), key="hist_categoria")
-        df_hist_filtered = df_hist[(df_hist["Año"] == year_hist) & (df_hist["Categoría"].isin(categoria_hist))]
+    try:
+        # Leer hoja de Google Sheets
+        scope = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+        client = gspread.authorize(creds)
+        sheet_hist = client.open_by_key("1AL2lrmiaCg77ZTLBOrwEctUhwjT1iZ60AferLPDoQYQ").worksheet("Histórico_diario")
+        data_hist = sheet_hist.get_all_records()
+        df_hist = pd.DataFrame(data_hist)
 
-        st.dataframe(df_hist_filtered, use_container_width=True)
+        if not df_hist.empty:
+            # Filtros
+            col1, col2 = st.columns(2)
+            with col1:
+                year_hist = st.selectbox("Filtrar por Año", sorted(df_hist["Año"].unique()), key="hist_anio")
+            with col2:
+                categorias = df_hist["Categoría"].unique().tolist()
+                categoria_hist = st.multiselect("Filtrar por Categoría", categorias, default=categorias, key="hist_cat")
 
-        st.subheader("📊 Totales del Historial")
-        col1, col2, col3 = st.columns(3)
-        col1.metric("💼 Total Presupuesto", f"${df_hist_filtered['Monto'].sum():,.2f}")
-        col2.metric("🧾 Total IVA", f"${df_hist_filtered['IVA'].sum():,.2f}")
-        col3.metric("📊 Total con IVA", f"${df_hist_filtered['Total c/IVA'].sum():,.2f}")
+            df_filtrado = df_hist[(df_hist["Año"] == year_hist) & (df_hist["Categoría"].isin(categoria_hist))]
+
+            # Tabla
+            st.dataframe(df_filtrado, use_container_width=True)
+
+            # Gráfica
+            fig_hist = px.bar(df_filtrado, x="Categoría", y="Total c/IVA", color="Categoría",
+                              title="Totales por Categoría en el Historial")
+            st.plotly_chart(fig_hist, use_container_width=True)
+        else:
+            st.info("⚠️ Aún no hay datos en el historial.")
+
+    except Exception as e:
+        st.error(f"❌ Error al cargar el historial: {e}")
 
