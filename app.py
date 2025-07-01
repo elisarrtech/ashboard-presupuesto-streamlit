@@ -17,7 +17,7 @@ def autenticar():
     contraseña = st.sidebar.text_input("Contraseña", type="password", value="", key="contraseña")
 
     usuario_valido = st.secrets["auth"]["usuario"]
-    contraseña_valida = st.secrets["auth"]["contraseña"]
+    contraseña_valida = st.secrets["auth"]["password"]
 
     if usuario == usuario_valido and contraseña == contraseña_valida:
         return True
