@@ -8,13 +8,17 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
 
-# --- AUTENTICACIÓN ---
+st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
+
+# ---------------- AUTENTICACIÓN ----------------
 def autenticar():
     st.sidebar.title("🔐 Autenticación")
     usuario = st.sidebar.text_input("Usuario", value="", key="usuario")
     contraseña = st.sidebar.text_input("Contraseña", type="password", value="", key="contraseña")
+
     usuario_valido = st.secrets["auth"]["usuario"]
     contraseña_valida = st.secrets["auth"]["contraseña"]
+
     if usuario == usuario_valido and contraseña == contraseña_valida:
         return True
     else:
@@ -25,32 +29,50 @@ def autenticar():
 if not autenticar():
     st.stop()
 
-st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
-
-# --- GUARDAR EN GOOGLE SHEETS ---
+# ---------------- GOOGLE SHEETS ----------------
 def guardar_en_google_sheets(datos: dict):
     scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
     creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-    SHEET_ID = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
-    sheet = client.open_by_key(SHEET_ID).sheet1
-    fila = [datos["Año"], datos["Fecha"], datos["Categoría"], datos["Subcategoría"], datos["Concepto"], datos["Monto"], datos["Aplica IVA"], datos["IVA"], datos["Total c/IVA"]]
+    sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+    fila = [
+        datos["Año"],
+        datos["Fecha"],
+        datos["Categoría"],
+        datos["Subcategoría"],
+        datos["Concepto"],
+        datos["Monto"],
+        datos["Aplica IVA"],
+        datos["IVA"],
+        datos["Total c/IVA"]
+    ]
     sheet.append_row(fila, value_input_option="USER_ENTERED")
 
-# --- PESTAÑAS ---
-tab1, tab2 = st.tabs(["📊 Presupuesto Actual", "📁 Historial"])
+def cargar_historial_google_sheets():
+    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    client = gspread.authorize(creds)
+    sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+    data = sheet.get_all_records()
+    return pd.DataFrame(data)
+
+# ---------------- INTERFAZ CON TABS ----------------
+tab1, tab2 = st.tabs(["📊 Dashboard", "📁 Historial"])
 
 with tab1:
     uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type=["csv"])
     if uploaded_file is None:
         st.warning("🔄 Por favor carga un archivo CSV para iniciar.")
         st.stop()
+
     df = pd.read_csv(uploaded_file)
     columnas_requeridas = {"Año", "Categoría", "Subcategoría", "Concepto", "Monto", "Aplica IVA"}
     if not columnas_requeridas.issubset(df.columns):
         st.error("❌ El archivo no tiene las columnas requeridas.")
         st.stop()
+
     if "IVA" not in df.columns:
         df["IVA"] = df.apply(lambda row: row["Monto"] * 0.16 if row["Aplica IVA"] == "Sí" else 0, axis=1)
     if "Total c/IVA" not in df.columns:
@@ -61,6 +83,8 @@ with tab1:
     else:
         df["Fecha"] = pd.NaT
         df["Mes"] = "Sin Fecha"
+
+    # ---------------- FORMULARIO ----------------
     st.sidebar.markdown("### 📝 Agregar nuevo concepto")
     with st.sidebar.form("formulario_concepto"):
         anio = st.number_input("Año", min_value=2000, max_value=2100, step=1, value=2025)
@@ -71,44 +95,81 @@ with tab1:
         monto = st.number_input("Monto", min_value=0.0, step=100.0)
         aplica_iva = st.selectbox("¿Aplica IVA?", ["Sí", "No"])
         submitted = st.form_submit_button("➕ Agregar concepto")
-    if submitted and categoria and concepto and monto > 0:
-        nuevo = {"Año": anio, "Fecha": fecha.strftime("%Y-%m-%d"), "Categoría": categoria, "Subcategoría": subcategoria, "Concepto": concepto, "Monto": monto, "Aplica IVA": aplica_iva}
-        nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
-        nuevo["Total c/IVA"] = monto + nuevo["IVA"]
-        df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
-        guardar_en_google_sheets(nuevo)
-        st.success("✅ Concepto agregado y guardado en Google Sheets")
+
+    if submitted:
+        if not categoria or not concepto or monto == 0:
+            st.warning("⚠️ Por favor completa todos los campos obligatorios.")
+        else:
+            nuevo = {
+                "Año": anio,
+                "Fecha": fecha.strftime("%Y-%m-%d"),
+                "Categoría": categoria,
+                "Subcategoría": subcategoria,
+                "Concepto": concepto,
+                "Monto": monto,
+                "Aplica IVA": aplica_iva,
+            }
+            nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
+            nuevo["Total c/IVA"] = monto + nuevo["IVA"]
+            df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
+            guardar_en_google_sheets(nuevo)
+            st.success("✅ Concepto agregado y guardado en Google Sheets")
+
+    # ---------------- FILTROS ----------------
     st.sidebar.markdown("### 🔍 Filtros")
     year = st.selectbox("Año", sorted(df["Año"].unique()))
     categoria_filtro = st.multiselect("Categoría", df["Categoría"].unique(), default=df["Categoría"].unique())
     filtered_df = df[(df["Año"] == year) & (df["Categoría"].isin(categoria_filtro))]
+
+    # ---------------- KPIs ----------------
     st.markdown("### 📌 Indicadores Clave")
     col1, col2, col3 = st.columns(3)
     col1.metric("💼 Total Presupuesto", f"${filtered_df['Monto'].sum():,.2f}")
     col2.metric("🧾 Total IVA", f"${filtered_df['IVA'].sum():,.2f}")
     col3.metric("📊 Total con IVA", f"${filtered_df['Total c/IVA'].sum():,.2f}")
-    pastel = px.colors.qualitative.Pastel
-    st.subheader("📈 Distribución por Subcategoría")
-    st.plotly_chart(px.pie(filtered_df, names="Subcategoría", values="Total c/IVA", color_discrete_sequence=pastel), use_container_width=True)
-    st.subheader("📊 Comparativa por Categoría")
-    st.plotly_chart(px.bar(filtered_df, x="Categoría", y="Total c/IVA", color="Categoría", color_discrete_sequence=pastel), use_container_width=True)
+    st.markdown("---")
 
+    pastel_colors = px.colors.qualitative.Pastel
+
+    st.subheader("📈 Distribución por Subcategoría")
+    fig1 = px.pie(filtered_df, names="Subcategoría", values="Total c/IVA", title="Total con IVA por Subcategoría", color_discrete_sequence=pastel_colors)
+    st.plotly_chart(fig1, use_container_width=True)
+
+    st.subheader("📊 Comparativa por Categoría")
+    fig2 = px.bar(filtered_df, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales con IVA por Categoría", color_discrete_sequence=pastel_colors)
+    st.plotly_chart(fig2, use_container_width=True)
+
+    if "Fecha" in filtered_df.columns and pd.notnull(filtered_df["Fecha"]).any():
+        st.subheader("📆 Evolución del presupuesto por Mes")
+        evolution_df = filtered_df.copy()
+        evolution_df["Fecha"] = pd.to_datetime(evolution_df["Fecha"])
+        evolution_df["Mes"] = evolution_df["Fecha"].dt.to_period("M").astype(str)
+        fig3 = px.line(evolution_df.sort_values("Fecha"), x="Mes", y="Total c/IVA", color="Categoría", markers=True, color_discrete_sequence=pastel_colors)
+        st.plotly_chart(fig3, use_container_width=True)
+
+    # ---------------- EXPORTACIÓN ----------------
+    buffer = io.BytesIO()
+    with ExcelWriter(buffer, engine='xlsxwriter') as writer:
+        filtered_df.to_excel(writer, index=False, sheet_name="Presupuesto")
+    st.download_button("⬇ Descargar presupuesto filtrado en Excel", data=buffer.getvalue(), file_name="presupuesto_filtrado.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
+# ---------------- HISTORIAL ----------------
 with tab2:
-    try:
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
-        creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-        client = gspread.authorize(creds)
-        SHEET_ID = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
-        sheet = client.open_by_key(SHEET_ID).sheet1
-        data = sheet.get_all_records()
-        df_hist = pd.DataFrame(data)
-        st.markdown("### 📁 Historial desde Google Sheets")
-        anios = st.multiselect("Filtrar por año", sorted(df_hist["Año"].unique()), default=sorted(df_hist["Año"].unique()))
-        categorias = st.multiselect("Filtrar por categoría", sorted(df_hist["Categoría"].unique()), default=sorted(df_hist["Categoría"].unique()))
-        df_filtrado = df_hist[df_hist["Año"].isin(anios) & df_hist["Categoría"].isin(categorias)]
-        st.dataframe(df_filtrado)
-        st.plotly_chart(px.bar(df_filtrado, x="Categoría", y="Total c/IVA", color="Categoría", title="Historial por Categoría"), use_container_width=True)
-    except Exception as e:
-        st.error("❌ Error al cargar historial: " + str(e))
+    st.subheader("📁 Historial de Conceptos Guardados")
+    df_hist = cargar_historial_google_sheets()
+
+    if df_hist.empty:
+        st.info("ℹ️ No hay datos en el historial aún.")
+    else:
+        year_hist = st.selectbox("Filtrar por Año", sorted(df_hist["Año"].unique()), key="hist_anio")
+        categoria_hist = st.multiselect("Filtrar por Categoría", df_hist["Categoría"].unique(), default=df_hist["Categoría"].unique(), key="hist_categoria")
+        df_hist_filtered = df_hist[(df_hist["Año"] == year_hist) & (df_hist["Categoría"].isin(categoria_hist))]
+
+        st.dataframe(df_hist_filtered, use_container_width=True)
+
+        st.subheader("📊 Totales del Historial")
+        col1, col2, col3 = st.columns(3)
+        col1.metric("💼 Total Presupuesto", f"${df_hist_filtered['Monto'].sum():,.2f}")
+        col2.metric("🧾 Total IVA", f"${df_hist_filtered['IVA'].sum():,.2f}")
+        col3.metric("📊 Total con IVA", f"${df_hist_filtered['Total c/IVA'].sum():,.2f}")
 
