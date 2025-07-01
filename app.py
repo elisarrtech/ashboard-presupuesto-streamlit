@@ -1,3 +1,31 @@
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+def guardar_en_google_sheets(datos: dict):
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+    client = gspread.authorize(creds)
+
+    # Reemplaza esto con el ID de tu hoja
+    SHEET_ID = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
+    sheet = client.open_by_key(SHEET_ID).sheet1
+
+    # Convierte dict a lista (ordenada como en tu hoja)
+    fila = [
+        datos["Año"],
+        datos["Categoría"],
+        datos["Subcategoría"],
+        datos["Concepto"],
+        datos["Monto"],
+        datos["Aplica IVA"],
+        datos["IVA"],
+        datos["Total c/IVA"],
+    ]
+
+    sheet.append_row(fila, value_input_option="USER_ENTERED")
 import streamlit as st
 import pandas as pd
 import plotly.express as px
