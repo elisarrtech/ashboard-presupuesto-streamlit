@@ -119,36 +119,6 @@ with tab1:
     col3.metric("📊 Total con IVA", f"${filtered_df['Total c/IVA'].sum():,.2f}")
     st.markdown("---")
 
-   # ---------------- ALERTA POR SOBREPRESUPUESTO ----------------
-st.markdown("### 🚨 Alertas por sobrepresupuesto")
-
-# Puedes definir tus propios límites estimados aquí
-presupuesto_estimado = {
-    "Nómina": 50000,
-    "Servicios": 15000,
-    "Mantenimiento": 10000,
-    "Marketing": 8000,
-    "Papelería": 3000,
-    "Otros": 5000
-}
-
-categorias_alerta = []
-
-for cat in filtered_df["Categoría"].unique():
-    gasto = filtered_df[filtered_df["Categoría"] == cat]["Total c/IVA"].sum()
-    limite = presupuesto_estimado.get(cat, None)
-
-    if limite and gasto > limite:
-        categorias_alerta.append((cat, gasto, limite))
-
-if categorias_alerta:
-    for cat, gasto, limite in categorias_alerta:
-        st.error(f"🔴 ¡Atención! La categoría **{cat}** ha excedido su límite. Gastado: ${gasto:,.2f} / Límite: ${limite:,.2f}")
-else:
-    st.success("✅ Todas las categorías están dentro del presupuesto estimado.")
-    
-    
-    
     pastel_colors = px.colors.qualitative.Pastel
 
     st.subheader("📈 Distribución por Subcategoría")
@@ -178,9 +148,6 @@ else:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-
-
-
 # ---------------- TAB 2: HISTORIAL ----------------
 with tab2:
     st.header("📁 Historial de Conceptos Guardados")
@@ -194,9 +161,6 @@ with tab2:
         df_hist = pd.DataFrame(data_hist)
 
         if not df_hist.empty:
-            df_hist["Monto"] = pd.to_numeric(df_hist["Monto"], errors="coerce")
-            df_hist.dropna(subset=["Monto"], inplace=True)
-
             col1, col2 = st.columns(2)
             with col1:
                 year_hist = st.selectbox("Filtrar por Año", sorted(df_hist["Año"].unique()), key="hist_anio")
@@ -207,14 +171,11 @@ with tab2:
             df_filtrado = df_hist[(df_hist["Año"] == year_hist) & (df_hist["Categoría"].isin(categoria_hist))]
             st.dataframe(df_filtrado, use_container_width=True)
 
-            if not df_filtrado.empty:
-                fig_hist = px.bar(df_filtrado, x="Categoría", y="Monto", color="Categoría", title="Totales por Categoría en el Historial")
-                st.plotly_chart(fig_hist, use_container_width=True)
-
-                fig_hist2 = px.pie(df_filtrado, names="Subcategoría", values="Monto", title="Distribución por Subcategoría")
-                st.plotly_chart(fig_hist2, use_container_width=True)
+            fig_hist = px.bar(df_filtrado, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales por Categoría en el Historial")
+            st.plotly_chart(fig_hist, use_container_width=True)
         else:
             st.info("⚠️ Aún no hay datos en el historial.")
+
     except Exception as e:
         st.error(f"❌ Error al cargar el historial: {e}")
 
@@ -231,21 +192,4 @@ st.markdown("""
         cursor: pointer;
     ">🖨️ Exportar Dashboard como PDF</button>
 """, unsafe_allow_html=True)
-
-
-from datetime import datetime, timedelta
-
-# Detectar fechas de pago próximas
-hoy = datetime.today().date()
-proximos_dias = hoy + timedelta(days=5)
-
-if "Fecha de Pago" in df.columns:
-    df["Fecha de Pago"] = pd.to_datetime(df["Fecha de Pago"], errors='coerce').dt.date
-    alertas = df[df["Fecha de Pago"].between(hoy, proximos_dias)]
-
-    if not alertas.empty:
-        st.warning("🔔 Hay conceptos con fecha de pago cercana:")
-        for i, row in alertas.iterrows():
-            st.write(f"➡️ **{row['Concepto']}** de la categoría *{row['Categoría']}* vence el **{row['Fecha de Pago']}** por **${row['Monto']:.2f}**.")
-
 
