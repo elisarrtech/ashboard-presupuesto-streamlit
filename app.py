@@ -2,6 +2,12 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
 import streamlit as st  # Asegúrate de que esto esté al inicio también
+import pandas as pd
+import plotly.express as px
+import io
+from pandas import ExcelWriter
+from datetime import date  # NECESARIO para usar date.today()
+
 
 def guardar_en_google_sheets(datos: dict):
     scope = [
