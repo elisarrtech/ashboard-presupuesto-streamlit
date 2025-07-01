@@ -1,5 +1,3 @@
-st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
-
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
@@ -9,6 +7,8 @@ import plotly.express as px
 import io
 from pandas import ExcelWriter
 from datetime import date  # NECESARIO para usar date.today()
+
+st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 
 
 def guardar_en_google_sheets(datos: dict):
