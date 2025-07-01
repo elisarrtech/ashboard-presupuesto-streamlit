@@ -1,3 +1,5 @@
+st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
+
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
