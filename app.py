@@ -82,22 +82,6 @@ with st.sidebar.form("formulario_concepto"):
     submitted = st.form_submit_button("➕ Agregar concepto")
 
 if submitted:
-    nuevo = {
-        "Año": anio,
-        "Fecha": fecha.strftime("%Y-%m-%d"),
-        "Categoría": categoria,
-        "Subcategoría": subcategoria,
-        "Concepto": concepto,
-        "Monto": monto,
-        "Aplica IVA": aplica_iva,
-    }
-    nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
-    nuevo["Total c/IVA"] = monto + nuevo["IVA"]
-    df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
-    guardar_en_google_sheets(nuevo)
-    st.success("✅ Concepto agregado y guardado en Google Sheets")
-
-if submitted:
     if not categoria or not concepto or monto == 0:
         st.warning("⚠️ Por favor completa todos los campos obligatorios.")
     else:
