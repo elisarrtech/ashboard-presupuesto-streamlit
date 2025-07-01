@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -20,7 +19,7 @@ if uploaded_file is None:
 df = pd.read_csv(uploaded_file)
 
 # Validar columnas mínimas necesarias
-columnas_requeridas = {"Año", "Categoría", "Subcategoría", "Monto", "Aplica IVA"}
+columnas_requeridas = {"Año", "Categoría", "Subcategoría", "Concepto", "Monto", "Aplica IVA"}
 if not columnas_requeridas.issubset(df.columns):
     st.error("❌ El archivo no tiene las columnas requeridas.")
     st.stop()
@@ -32,13 +31,42 @@ if "IVA" not in df.columns:
 if "Total c/IVA" not in df.columns:
     df["Total c/IVA"] = df["Monto"] + df["IVA"]
 
+# Formulario en sidebar para agregar nuevo concepto
+st.sidebar.markdown("---")
+st.sidebar.header("📝 Agregar nuevo concepto")
+
+with st.sidebar.form("formulario_concepto"):
+    anio = st.number_input("Año", min_value=2000, max_value=2100, step=1, value=2025)
+    categoria = st.text_input("Categoría")
+    subcategoria = st.text_input("Subcategoría")
+    concepto = st.text_input("Nombre del concepto")
+    monto = st.number_input("Monto", min_value=0.0, step=100.0)
+    aplica_iva = st.selectbox("¿Aplica IVA?", ["Sí", "No"])
+    submitted = st.form_submit_button("➕ Agregar concepto")
+
+# Si se envió el formulario
+if submitted:
+    nuevo = {
+        "Año": anio,
+        "Categoría": categoria,
+        "Subcategoría": subcategoria,
+        "Concepto": concepto,
+        "Monto": monto,
+        "Aplica IVA": aplica_iva,
+    }
+    nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
+    nuevo["Total c/IVA"] = monto + nuevo["IVA"]
+    df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
+    st.success("✅ Concepto agregado correctamente")
+
 # Filtros
 with st.sidebar:
+    st.markdown("---")
     st.header("🔍 Filtros")
     year = st.selectbox("Año", sorted(df["Año"].unique()))
-    categoria = st.multiselect("Categoría", df["Categoría"].unique(), default=df["Categoría"].unique())
+    categoria_filtro = st.multiselect("Categoría", df["Categoría"].unique(), default=df["Categoría"].unique())
 
-filtered_df = df[(df["Año"] == year) & (df["Categoría"].isin(categoria))]
+filtered_df = df[(df["Año"] == year) & (df["Categoría"].isin(categoria_filtro))]
 
 # KPIs
 col1, col2, col3 = st.columns(3)
