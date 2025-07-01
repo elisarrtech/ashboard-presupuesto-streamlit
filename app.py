@@ -1,3 +1,25 @@
+import streamlit as st
+
+def autenticar():
+    st.sidebar.title("🔐 Autenticación")
+    usuario = st.sidebar.text_input("Usuario", value="", key="usuario")
+    contraseña = st.sidebar.text_input("Contraseña", type="password", value="", key="contraseña")
+    
+    usuario_valido = st.secrets["auth"]["usuario"]
+    contraseña_valida = st.secrets["auth"]["contraseña"]
+
+    if usuario == usuario_valido and contraseña == contraseña_valida:
+        return True
+    else:
+        if usuario and contraseña:
+            st.sidebar.error("❌ Usuario o contraseña incorrectos.")
+        return False
+
+# Verificar acceso antes de mostrar la app
+if not autenticar():
+    st.stop()
+
+
 import pandas as pd
 import plotly.express as px
 import io
