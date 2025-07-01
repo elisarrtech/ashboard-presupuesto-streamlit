@@ -12,6 +12,7 @@ import streamlit as st  # Asegúrate de que esto esté al inicio también
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 
 
+
 def guardar_en_google_sheets(datos: dict):
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
@@ -95,6 +96,26 @@ if submitted:
     df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
     guardar_en_google_sheets(nuevo)
     st.success("✅ Concepto agregado y guardado en Google Sheets")
+
+if submitted:
+    if not categoria or not concepto or monto == 0:
+        st.warning("⚠️ Por favor completa todos los campos obligatorios.")
+    else:
+        nuevo = {
+            "Año": anio,
+            "Fecha": fecha.strftime("%Y-%m-%d"),
+            "Categoría": categoria,
+            "Subcategoría": subcategoria,
+            "Concepto": concepto,
+            "Monto": monto,
+            "Aplica IVA": aplica_iva,
+        }
+        nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
+        nuevo["Total c/IVA"] = monto + nuevo["IVA"]
+        df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
+        guardar_en_google_sheets(nuevo)
+        st.success("✅ Concepto agregado y guardado en Google Sheets")
+
 
 # ---------------- FILTROS ----------------
 st.sidebar.markdown("### 🔍 Filtros")
