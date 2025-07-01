@@ -194,6 +194,9 @@ with tab2:
         df_hist = pd.DataFrame(data_hist)
 
         if not df_hist.empty:
+            df_hist["Monto"] = pd.to_numeric(df_hist["Monto"], errors="coerce")
+            df_hist.dropna(subset=["Monto"], inplace=True)
+
             col1, col2 = st.columns(2)
             with col1:
                 year_hist = st.selectbox("Filtrar por Año", sorted(df_hist["Año"].unique()), key="hist_anio")
@@ -204,11 +207,14 @@ with tab2:
             df_filtrado = df_hist[(df_hist["Año"] == year_hist) & (df_hist["Categoría"].isin(categoria_hist))]
             st.dataframe(df_filtrado, use_container_width=True)
 
-            fig_hist = px.bar(df_filtrado, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales por Categoría en el Historial")
-            st.plotly_chart(fig_hist, use_container_width=True)
+            if not df_filtrado.empty:
+                fig_hist = px.bar(df_filtrado, x="Categoría", y="Monto", color="Categoría", title="Totales por Categoría en el Historial")
+                st.plotly_chart(fig_hist, use_container_width=True)
+
+                fig_hist2 = px.pie(df_filtrado, names="Subcategoría", values="Monto", title="Distribución por Subcategoría")
+                st.plotly_chart(fig_hist2, use_container_width=True)
         else:
             st.info("⚠️ Aún no hay datos en el historial.")
-
     except Exception as e:
         st.error(f"❌ Error al cargar el historial: {e}")
 
