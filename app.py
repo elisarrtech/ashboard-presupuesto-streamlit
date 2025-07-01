@@ -193,3 +193,19 @@ st.markdown("""
     ">🖨️ Exportar Dashboard como PDF</button>
 """, unsafe_allow_html=True)
 
+
+from datetime import datetime, timedelta
+
+# Detectar fechas de pago próximas
+hoy = datetime.today().date()
+proximos_dias = hoy + timedelta(days=5)
+
+if "Fecha de Pago" in df.columns:
+    df["Fecha de Pago"] = pd.to_datetime(df["Fecha de Pago"], errors='coerce').dt.date
+    alertas = df[df["Fecha de Pago"].between(hoy, proximos_dias)]
+
+    if not alertas.empty:
+        st.warning("🔔 Hay conceptos con fecha de pago cercana:")
+        for i, row in alertas.iterrows():
+            st.write(f"➡️ **{row['Concepto']}** de la categoría *{row['Categoría']}* vence el **{row['Fecha de Pago']}** por **${row['Monto']:.2f}**.")
+
