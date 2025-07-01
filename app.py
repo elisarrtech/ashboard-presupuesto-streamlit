@@ -179,3 +179,18 @@ with tab2:
     except Exception as e:
         st.error(f"❌ Error al cargar el historial: {e}")
 
+# ---------------- BOTÓN PARA EXPORTAR A PDF ----------------
+st.markdown("""
+    <br>
+    <button onclick="window.print()" style="
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    ">🖨️ Exportar Dashboard como PDF</button>
+""", unsafe_allow_html=True)
+
+
