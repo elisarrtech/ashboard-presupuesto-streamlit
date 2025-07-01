@@ -6,27 +6,21 @@ from datetime import date
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import json
-import streamlit as st  # Asegúrate de que esto esté al inicio también
-
+import streamlit as st
 
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 
-
-
+# ---------------- FUNCIÓN PARA GUARDAR EN GOOGLE SHEETS ----------------
 def guardar_en_google_sheets(datos: dict):
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-
-    # Leer el secreto desde Streamlit Cloud
     creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
-
     SHEET_ID = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
     sheet = client.open_by_key(SHEET_ID).sheet1
-
     fila = [
         datos["Año"],
         datos["Fecha"],
@@ -39,7 +33,6 @@ def guardar_en_google_sheets(datos: dict):
         datos["Total c/IVA"],
     ]
     sheet.append_row(fila, value_input_option="USER_ENTERED")
-
 
 # ---------------- CARGA DE ARCHIVO ----------------
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type=["csv"])
@@ -100,7 +93,6 @@ if submitted:
         guardar_en_google_sheets(nuevo)
         st.success("✅ Concepto agregado y guardado en Google Sheets")
 
-
 # ---------------- FILTROS ----------------
 st.sidebar.markdown("### 🔍 Filtros")
 year = st.selectbox("Año", sorted(df["Año"].unique()))
@@ -116,12 +108,14 @@ col3.metric("📊 Total con IVA", f"${filtered_df['Total c/IVA'].sum():,.2f}")
 st.markdown("---")
 
 # ---------------- GRÁFICOS ----------------
+pastel_colors = px.colors.qualitative.Pastel
+
 st.subheader("📈 Distribución por Subcategoría")
-fig1 = px.pie(filtered_df, names="Subcategoría", values="Total c/IVA", title="Total con IVA por Subcategoría")
+fig1 = px.pie(filtered_df, names="Subcategoría", values="Total c/IVA", title="Total con IVA por Subcategoría", color_discrete_sequence=pastel_colors)
 st.plotly_chart(fig1, use_container_width=True)
 
 st.subheader("📊 Comparativa por Categoría")
-fig2 = px.bar(filtered_df, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales con IVA por Categoría")
+fig2 = px.bar(filtered_df, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales con IVA por Categoría", color_discrete_sequence=pastel_colors)
 st.plotly_chart(fig2, use_container_width=True)
 
 if "Fecha" in filtered_df.columns and pd.notnull(filtered_df["Fecha"]).any():
@@ -129,7 +123,7 @@ if "Fecha" in filtered_df.columns and pd.notnull(filtered_df["Fecha"]).any():
     evolution_df = filtered_df.copy()
     evolution_df["Fecha"] = pd.to_datetime(evolution_df["Fecha"])
     evolution_df["Mes"] = evolution_df["Fecha"].dt.to_period("M").astype(str)
-    fig3 = px.line(evolution_df.sort_values("Fecha"), x="Mes", y="Total c/IVA", color="Categoría", markers=True)
+    fig3 = px.line(evolution_df.sort_values("Fecha"), x="Mes", y="Total c/IVA", color="Categoría", markers=True, color_discrete_sequence=pastel_colors)
     st.plotly_chart(fig3, use_container_width=True)
 
 # ---------------- EXPORTACIÓN A EXCEL ----------------
@@ -143,3 +137,4 @@ st.download_button(
     file_name="presupuesto_filtrado.xlsx",
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 )
+
