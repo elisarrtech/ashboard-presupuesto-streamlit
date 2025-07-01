@@ -248,3 +248,4 @@ if "Fecha de Pago" in df.columns:
         for i, row in alertas.iterrows():
             st.write(f"➡️ **{row['Concepto']}** de la categoría *{row['Categoría']}* vence el **{row['Fecha de Pago']}** por **${row['Monto']:.2f}**.")
 
+
