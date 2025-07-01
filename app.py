@@ -148,6 +148,35 @@ with tab1:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+# ---------------- ALERTA POR SOBREPRESUPUESTO ----------------
+st.markdown("### 🚨 Alertas por sobrepresupuesto")
+
+# Puedes definir tus propios límites estimados aquí
+presupuesto_estimado = {
+    "Nómina": 50000,
+    "Servicios": 15000,
+    "Mantenimiento": 10000,
+    "Marketing": 8000,
+    "Papelería": 3000,
+    "Otros": 5000
+}
+
+categorias_alerta = []
+
+for cat in filtered_df["Categoría"].unique():
+    gasto = filtered_df[filtered_df["Categoría"] == cat]["Total c/IVA"].sum()
+    limite = presupuesto_estimado.get(cat, None)
+
+    if limite and gasto > limite:
+        categorias_alerta.append((cat, gasto, limite))
+
+if categorias_alerta:
+    for cat, gasto, limite in categorias_alerta:
+        st.error(f"🔴 ¡Atención! La categoría **{cat}** ha excedido su límite. Gastado: ${gasto:,.2f} / Límite: ${limite:,.2f}")
+else:
+    st.success("✅ Todas las categorías están dentro del presupuesto estimado.")
+
+
 # ---------------- TAB 2: HISTORIAL ----------------
 with tab2:
     st.header("📁 Historial de Conceptos Guardados")
