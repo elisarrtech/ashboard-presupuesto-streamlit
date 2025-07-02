@@ -180,3 +180,35 @@ if submit:
     except Exception as e:
         st.error(f"❌ No se pudo guardar el registro: {e}")
 
+# --- MÓDULO DE EDICIÓN DE REGISTROS ---
+st.header("✏️ Editar registros existentes")
+
+try:
+    # Recargar datos actualizados
+    df_edicion = load_google_sheet()
+
+    # Selector de fila por índice o concepto
+    df_edicion["Identificador"] = df_edicion.index.astype(str) + " - " + df_edicion["Concepto"]
+
+    selected_id = st.selectbox("🔎 Selecciona un registro para editar", df_edicion["Identificador"])
+
+    if selected_id:
+        index_to_edit = int(selected_id.split(" - ")[0])
+        row_data = df_edicion.loc[index_to_edit]
+
+        with st.form(key="edit_form"):
+            nueva_fecha = st.date_input("📅 Fecha", value=pd.to_datetime(row_data["Fecha"]))
+            nueva_categoria = st.text_input("🏦 Categoría", value=row_data["Categoría"])
+            nuevo_concepto = st.text_input("📝 Concepto", value=row_data["Concepto"])
+            nuevo_monto = st.number_input("💵 Monto", min_value=0.0, value=float(row_data["Monto"]))
+            nuevo_status = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"], index=["PAGADO", "PENDIENTE"].index(row_data["Status"]))
+            submit = st.form_submit_button("💾 Guardar cambios")
+
+        if submit:
+            # Actualizamos los valores
+            df_edicion.at[index_to_edit, "Fecha"] = nueva_fecha.strftime("%Y-%m-%d")
+            df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
+            df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
+            df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
+            df_edicion.at[index]()_
+
