@@ -173,22 +173,24 @@ try:
             nuevo_status = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"], index=["PAGADO", "PENDIENTE"].index(row_data["Status"]))
             guardar = st.form_submit_button("💾 Guardar cambios")
 
-        if guardar:
-            df_edicion.at[index_to_edit, "Fecha"] = nueva_fecha.strftime("%Y-%m-%d")
-            df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
-            df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
-            df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
-            df_edicion.at[index_to_edit, "Status"] = nuevo_status
-            df_edicion.at[index_to_edit, "Mes"] = meses_es[nueva_fecha.month]
+       if guardar:
+    df_edicion.at[index_to_edit, "Fecha"] = nueva_fecha.strftime("%Y-%m-%d")
+    df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
+    df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
+    df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
+    df_edicion.at[index_to_edit, "Status"] = nuevo_status
+    df_edicion.at[index_to_edit, "Mes"] = meses_es[nueva_fecha.month]
 
-            client = authorize_google_sheets()
-            sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+    df_edicion["Fecha"] = df_edicion["Fecha"].astype(str)  # 🔧 Esta línea corrige el error
 
-            sheet.clear()
-            sheet.update([df_edicion.columns.values.tolist()] + df_edicion.values.tolist())
+    client = authorize_google_sheets()
+    sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
 
-            st.success("✅ Registro editado correctamente.")
-            st.rerun()
+    sheet.clear()
+    sheet.update([df_edicion.columns.values.tolist()] + df_edicion.values.tolist())
+
+    st.success("✅ Registro editado correctamente.")
+    st.rerun()
 
 except Exception as e:
     st.error(f"❌ Error en módulo de edición: {e}")
