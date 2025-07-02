@@ -5,50 +5,57 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 
-# Configuración de página
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
 
-# --- CONEXIÓN A GOOGLE SHEETS ---
-@st.cache_data
-def load_data():
-    # Definir alcance y cargar credenciales
+# --- CARGA MANUAL OPCIONAL ---
+uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
+
+# --- FUNCIÓN PARA LEER DESDE GOOGLE SHEETS ---
+def load_google_sheet():
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
     client = gspread.authorize(creds)
-
-    # Abrir Google Sheet por ID
     sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
-
-    # Mostrar columnas originales
-    st.write("🔍 Columnas desde Google Sheets:", df.columns.tolist())
-
-    # Limpiar y renombrar columnas
-    df.columns = df.columns.str.strip()  # elimina espacios ocultos
-    df = df.rename(columns={
-        "Fecha de Pago": "Fecha",
-        "Banco": "Categoría"
-    })
-
-    # Mostrar columnas después del rename
-    st.write("✅ Columnas luego del rename:", df.columns.tolist())
-
-    # Convertir fechas
-    df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
     return df
 
-# Cargar datos
-df = load_data()
+# --- CARGAR DATOS: CSV tiene prioridad si se sube ---
+if uploaded_file:
+    try:
+        df = pd.read_csv(uploaded_file, encoding="utf-8")
+    except UnicodeDecodeError:
+        df = pd.read_csv(uploaded_file, encoding="latin1")
+    st.success("✅ Datos cargados desde archivo CSV.")
+else:
+    try:
+        df = load_google_sheet()
+        st.success("✅ Datos cargados desde Google Sheets.")
+    except Exception as e:
+        st.error("❌ Error al cargar desde Google Sheets.")
+        st.stop()
 
-# Validación de columnas requeridas
+# --- LIMPIEZA Y RENOMBRE DE COLUMNAS ---
+df.columns = df.columns.str.strip()
+df = df.rename(columns={
+    "Fecha de Pago": "Fecha",
+    "Banco": "Categoría"
+})
+
+# Mostrar columnas para depuración
+st.write("🧾 Columnas actuales:", df.columns.tolist())
+
+# Convertir fechas
+df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
+
+# Validación de columnas
 required_columns = ["Fecha", "Categoría", "Concepto", "Monto", "Status"]
 if not all(col in df.columns for col in required_columns):
     st.error("❌ El archivo no tiene las columnas requeridas.")
     st.stop()
 
-# Crear columna de Mes
+# Crear columna Mes
 df["Mes"] = df["Fecha"].dt.strftime("%B")
 
 # --- KPIs ---
@@ -63,7 +70,7 @@ st.divider()
 
 # --- FILTROS ---
 meses = df["Mes"].dropna().unique()
-categorias = df["Categoría"].unique()
+categorias = df["Categoría"].dropna().unique()
 colf1, colf2 = st.columns(2)
 mes_sel = colf1.multiselect("📅 Filtrar por mes", sorted(meses), default=meses)
 cat_sel = colf2.multiselect("🏦 Filtrar por categoría", sorted(categorias), default=categorias)
