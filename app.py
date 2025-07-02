@@ -78,7 +78,7 @@ if not pendientes.empty:
 st.subheader("📈 Gasto total por mes")
 gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
 st.altair_chart(alt.Chart(gasto_mes).mark_bar().encode(
-    x=alt.X("Mes", sort=list(sorted(df["Mes"].unique()))),
+    x=alt.X("Mes", sort=list(sorted(df["Mes"].dropna().unique()))),
     y="Monto",
     tooltip=["Mes", "Monto"]
 ), use_container_width=True)
