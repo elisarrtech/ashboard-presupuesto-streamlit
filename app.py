@@ -1,160 +1,108 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import io
-from pandas import ExcelWriter
-from datetime import date
+import altair as alt
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import json
+from datetime import datetime
+from calendar import month_name
 
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
+st.title("📊 Dashboard de Presupuesto de Gastos")
 
-# ---------------- FUNCIÓN DE AUTENTICACIÓN ----------------
-def autenticar():
-    st.sidebar.title("🔐 Autenticación")
-    usuario_input = st.sidebar.text_input("Usuario", value="", key="usuario")
-    password_input = st.sidebar.text_input("Contraseña", type="password", value="", key="contraseña")
+# --- CARGA MANUAL OPCIONAL ---
+uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
 
-    usuario_valido = st.secrets["auth"]["usuario"]
-    password_valido = st.secrets["auth"]["password"]
-
-    if usuario_input == usuario_valido and password_input == password_valido:
-        return True
-    else:
-        if usuario_input and password_input:
-            st.sidebar.error("❌ Usuario o contraseña incorrectos.")
-        return False
-
-# Verificar acceso antes de mostrar la app
-if not autenticar():
-    st.stop()
-
-# ---------------- FUNCIÓN PARA GUARDAR EN GOOGLE SHEETS ----------------
-def guardar_en_google_sheets(datos: dict):
-    scope = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+# --- FUNCIÓN PARA LEER DESDE GOOGLE SHEETS ---
+def load_google_sheet():
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
     client = gspread.authorize(creds)
-    SHEET_ID = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
-    sheet = client.open_by_key(SHEET_ID).sheet1
-    fila = [
-        datos["Año"],
-        datos["Fecha"],
-        datos["Categoría"],
-        datos["Subcategoría"],
-        datos["Concepto"],
-        datos["Monto"],
-        datos["Aplica IVA"],
-        datos["IVA"],
-        datos["Total c/IVA"],
-    ]
-    sheet.append_row(fila, value_input_option="USER_ENTERED")
+    sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
 
-# ---------------- CARGA DE ARCHIVO ----------------
-uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type=["csv"])
-if uploaded_file is None:
-    st.warning("🔄 Por favor carga un archivo CSV para iniciar.")
-    st.stop()
+# --- CARGAR DATOS: CSV tiene prioridad si se sube ---
+if uploaded_file:
+    try:
+        df = pd.read_csv(uploaded_file, encoding='utf-8')
+    except UnicodeDecodeError:
+        try:
+            df = pd.read_csv(uploaded_file, encoding='latin1')
+        except Exception as e:
+            st.error(f"❌ No se pudo leer el archivo. Error: {e}")
+            st.stop()
+    st.success("✅ Datos cargados desde archivo CSV.")
+else:
+    try:
+        df = load_google_sheet()
+        st.success("✅ Datos cargados desde Google Sheets.")
+    except Exception as e:
+        st.error(f"❌ Error al cargar desde Google Sheets: {e}")
+        st.stop()
 
-df = pd.read_csv(uploaded_file)
+# --- LIMPIEZA Y VALIDACIÓN ---
+df.columns = df.columns.str.strip()
+df = df.rename(columns={"Fecha de Pago": "Fecha", "Banco": "Categoría"})
+df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
 
-# ---------------- VALIDACIÓN DE COLUMNAS ----------------
-columnas_requeridas = {"Año", "Categoría", "Subcategoría", "Concepto", "Monto", "Aplica IVA"}
-if not columnas_requeridas.issubset(df.columns):
+required_columns = ["Fecha", "Categoría", "Concepto", "Monto", "Status"]
+if not all(col in df.columns for col in required_columns):
     st.error("❌ El archivo no tiene las columnas requeridas.")
     st.stop()
 
-# ---------------- PROCESAMIENTO DE DATOS ----------------
-if "IVA" not in df.columns:
-    df["IVA"] = df.apply(lambda row: row["Monto"] * 0.16 if row["Aplica IVA"] == "Sí" else 0, axis=1)
+# --- EXTRAER MES EN ESPAÑOL ---
+meses_es = {
+    1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+    7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
+}
+df["Mes"] = df["Fecha"].dt.month.map(meses_es)
 
-if "Total c/IVA" not in df.columns:
-    df["Total c/IVA"] = df["Monto"] + df["IVA"]
-
-if "Fecha" in df.columns:
-    df["Fecha"] = pd.to_datetime(df["Fecha"])
-    df["Mes"] = df["Fecha"].dt.to_period("M").astype(str)
-else:
-    df["Fecha"] = pd.NaT
-    df["Mes"] = "Sin Fecha"
-
-# ---------------- FORMULARIO PARA NUEVO CONCEPTO ----------------
-st.sidebar.markdown("### 📝 Agregar nuevo concepto")
-with st.sidebar.form("formulario_concepto"):
-    anio = st.number_input("Año", min_value=2000, max_value=2100, step=1, value=2025)
-    fecha = st.date_input("Fecha del gasto", value=date.today())
-    categoria = st.text_input("Categoría")
-    subcategoria = st.text_input("Subcategoría")
-    concepto = st.text_input("Nombre del concepto")
-    monto = st.number_input("Monto", min_value=0.0, step=100.0)
-    aplica_iva = st.selectbox("¿Aplica IVA?", ["Sí", "No"])
-    submitted = st.form_submit_button("➕ Agregar concepto")
-
-if submitted:
-    if not categoria or not concepto or monto == 0:
-        st.warning("⚠️ Por favor completa todos los campos obligatorios.")
-    else:
-        nuevo = {
-            "Año": anio,
-            "Fecha": fecha.strftime("%Y-%m-%d"),
-            "Categoría": categoria,
-            "Subcategoría": subcategoria,
-            "Concepto": concepto,
-            "Monto": monto,
-            "Aplica IVA": aplica_iva,
-        }
-        nuevo["IVA"] = monto * 0.16 if aplica_iva == "Sí" else 0
-        nuevo["Total c/IVA"] = monto + nuevo["IVA"]
-        df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
-        guardar_en_google_sheets(nuevo)
-        st.success("✅ Concepto agregado y guardado en Google Sheets")
-
-# ---------------- FILTROS ----------------
-st.sidebar.markdown("### 🔍 Filtros")
-year = st.selectbox("Año", sorted(df["Año"].unique()))
-categoria_filtro = st.multiselect("Categoría", df["Categoría"].unique(), default=df["Categoría"].unique())
-filtered_df = df[(df["Año"] == year) & (df["Categoría"].isin(categoria_filtro))]
-
-# ---------------- KPIs ----------------
-st.markdown("### 📌 Indicadores Clave")
+# --- KPIs ---
 col1, col2, col3 = st.columns(3)
-col1.metric("💼 Total Presupuesto", f"${filtered_df['Monto'].sum():,.2f}")
-col2.metric("🧾 Total IVA", f"${filtered_df['IVA'].sum():,.2f}")
-col3.metric("📊 Total con IVA", f"${filtered_df['Total c/IVA'].sum():,.2f}")
-st.markdown("---")
+col1.metric("💰 Total Gastado", f"${df['Monto'].sum():,.0f}")
+col2.metric("✅ Pagado", f"${df[df['Status'] == 'PAGADO']['Monto'].sum():,.0f}")
+col3.metric("⚠️ Por Pagar", f"${df[df['Status'] != 'PAGADO']['Monto'].sum():,.0f}")
+st.divider()
 
-# ---------------- GRÁFICOS ----------------
-pastel_colors = px.colors.qualitative.Pastel
+# --- FILTROS ---
+meses = list(meses_es.values())
+categorias = df["Categoría"].dropna().unique()
+colf1, colf2 = st.columns(2)
+mes_sel = colf1.multiselect("📅 Filtrar por mes", meses, default=meses)
+cat_sel = colf2.multiselect("🏦 Filtrar por categoría", sorted(categorias), default=categorias)
 
-st.subheader("📈 Distribución por Subcategoría")
-fig1 = px.pie(filtered_df, names="Subcategoría", values="Total c/IVA", title="Total con IVA por Subcategoría", color_discrete_sequence=pastel_colors)
-st.plotly_chart(fig1, use_container_width=True)
+df_filtrado = df[df["Mes"].isin(mes_sel) & df["Categoría"].isin(cat_sel)]
 
-st.subheader("📊 Comparativa por Categoría")
-fig2 = px.bar(filtered_df, x="Categoría", y="Total c/IVA", color="Categoría", title="Totales con IVA por Categoría", color_discrete_sequence=pastel_colors)
-st.plotly_chart(fig2, use_container_width=True)
+# --- ALERTAS ---
+pendientes = df_filtrado[df_filtrado["Status"] != "PAGADO"]
+if not pendientes.empty:
+    st.warning(f"🔔 Hay {len(pendientes)} conceptos pendientes de pago")
+    with st.expander("Ver pendientes"):
+        st.dataframe(pendientes)
 
-if "Fecha" in filtered_df.columns and pd.notnull(filtered_df["Fecha"]).any():
-    st.subheader("📆 Evolución del presupuesto por Mes")
-    evolution_df = filtered_df.copy()
-    evolution_df["Fecha"] = pd.to_datetime(evolution_df["Fecha"])
-    evolution_df["Mes"] = evolution_df["Fecha"].dt.to_period("M").astype(str)
-    fig3 = px.line(evolution_df.sort_values("Fecha"), x="Mes", y="Total c/IVA", color="Categoría", markers=True, color_discrete_sequence=pastel_colors)
-    st.plotly_chart(fig3, use_container_width=True)
+# --- GRÁFICO: Gasto por Mes ---
+st.subheader("📈 Gasto total por mes")
+gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
+gasto_mes["Mes"] = pd.Categorical(gasto_mes["Mes"], categories=meses, ordered=True)
+gasto_mes = gasto_mes.sort_values("Mes")
 
-# ---------------- EXPORTACIÓN A EXCEL ----------------
-buffer = io.BytesIO()
-with ExcelWriter(buffer, engine='xlsxwriter') as writer:
-    filtered_df.to_excel(writer, index=False, sheet_name="Presupuesto")
-
-st.download_button(
-    label="⬇ Descargar presupuesto filtrado en Excel",
-    data=buffer.getvalue(),
-    file_name="presupuesto_filtrado.xlsx",
-    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+chart_mes = alt.Chart(gasto_mes).mark_bar().encode(
+    x=alt.X("Mes", sort=meses, title="Mes"),
+    y=alt.Y("Monto", title="Monto Total"),
+    tooltip=["Mes", "Monto"]
 )
+st.altair_chart(chart_mes, use_container_width=True)
 
+# --- GRÁFICO: Gasto por Categoría ---
+st.subheader("🏦 Gasto por categoría")
+gasto_cat = df_filtrado.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
+st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
+    x="Monto",
+    y=alt.Y("Categoría", sort="-x"),
+    tooltip=["Categoría", "Monto"]
+), use_container_width=True)
+
+# --- TABLA FINAL ---
+st.subheader("📄 Detalle de gastos filtrados")
+st.dataframe(df_filtrado.sort_values("Fecha"))

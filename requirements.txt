@@ -1,7 +1,5 @@
 streamlit
 pandas
-plotly
-xlsxwriter
+altair
 gspread
 oauth2client
-
