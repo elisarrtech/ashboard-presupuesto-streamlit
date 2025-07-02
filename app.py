@@ -210,7 +210,7 @@ try:
             df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
             df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
             df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
-            df_edicion.at[index]()_
+        
 
 # --- MÓDULO PARA AGREGAR NUEVOS REGISTROS ---
 st.header("➕ Agregar nuevo gasto")
