@@ -108,6 +108,7 @@ mes_sel = colf1.multiselect("📅 Filtrar por mes", meses, default=meses)
 cat_sel = colf2.multiselect("🏦 Filtrar por categoría", sorted(categorias), default=categorias)
 
 df_filtrado = df[df["Mes"].isin(mes_sel) & df["Categoría"].isin(cat_sel)]
+df_filtrado = df_filtrado[df_filtrado["Mes"].notna()]
 
 # --- ALERTAS ---
 pendientes = df_filtrado[df_filtrado["Status"] != "PAGADO"]
@@ -118,25 +119,33 @@ if not pendientes.empty:
 
 # --- GRÁFICO: Gasto por Mes ---
 st.subheader("📈 Gasto total por mes")
-gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
+gasto_mes = df_filtrado.groupby("Mes", sort=False)["Monto"].sum().reset_index()
 gasto_mes["Mes"] = pd.Categorical(gasto_mes["Mes"], categories=meses, ordered=True)
 gasto_mes = gasto_mes.sort_values("Mes")
 
-chart_mes = alt.Chart(gasto_mes).mark_bar().encode(
-    x=alt.X("Mes", sort=meses, title="Mes"),
-    y=alt.Y("Monto", title="Monto Total"),
-    tooltip=["Mes", "Monto"]
-)
-st.altair_chart(chart_mes, use_container_width=True)
+if not gasto_mes.empty:
+    chart_mes = alt.Chart(gasto_mes).mark_bar().encode(
+        x=alt.X("Mes", sort=meses, title="Mes"),
+        y=alt.Y("Monto", title="Monto Total"),
+        tooltip=["Mes", "Monto"]
+    )
+    st.altair_chart(chart_mes, use_container_width=True)
+else:
+    st.info("ℹ️ No hay datos disponibles para mostrar el gráfico de meses.")
 
 # --- GRÁFICO: Gasto por Categoría ---
 st.subheader("🏦 Gasto por categoría")
 gasto_cat = df_filtrado.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
-st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
-    x="Monto",
-    y=alt.Y("Categoría", sort="-x"),
-    tooltip=["Categoría", "Monto"]
-), use_container_width=True)
+
+if not gasto_cat.empty:
+    st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
+        x="Monto",
+        y=alt.Y("Categoría", sort="-x"),
+        tooltip=["Categoría", "Monto"]
+    ), use_container_width=True)
+else:
+    st.info("ℹ️ No hay datos disponibles para mostrar el gráfico por categoría.")
+
 
 # --- TABLA FINAL ---
 st.subheader("📄 Detalle de gastos filtrados")
