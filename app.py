@@ -75,13 +75,30 @@ if not pendientes.empty:
         st.dataframe(pendientes)
 
 # GRÁFICOS
+from calendar import month_name
+
+# Lista de meses en orden
+meses_ordenados = list(month_name)[1:]  # ['January', ..., 'December']
+
+# Convertimos 'Mes' a inglés si viene en español
+mes_traduccion = {
+    "Enero": "January", "Febrero": "February", "Marzo": "March",
+    "Abril": "April", "Mayo": "May", "Junio": "June",
+    "Julio": "July", "Agosto": "August", "Septiembre": "September",
+    "Octubre": "October", "Noviembre": "November", "Diciembre": "December"
+}
+
+df_filtrado["Mes_EN"] = df_filtrado["Mes"].map(mes_traduccion)
+
+# Gráfica
 st.subheader("📈 Gasto total por mes")
-gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
+gasto_mes = df_filtrado.groupby("Mes_EN")["Monto"].sum().reset_index()
 st.altair_chart(alt.Chart(gasto_mes).mark_bar().encode(
-    x=alt.X("Mes", sort=list(sorted(df["Mes"].dropna().unique()))),
+    x=alt.X("Mes_EN", sort=meses_ordenados, title="Mes"),
     y="Monto",
-    tooltip=["Mes", "Monto"]
+    tooltip=["Mes_EN", "Monto"]
 ), use_container_width=True)
+
 
 st.subheader("🏦 Gasto por categoría")
 gasto_cat = df_filtrado.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
