@@ -22,7 +22,9 @@ def authorize_google_sheets():
 def guardar_snapshot_diario(df_actual):
     try:
         hoy = datetime.today().strftime("%Y-%m-%d")
-        df_actual["Fecha de Snapshot"] = hoy
+        df_snapshot = df_actual.copy()
+        df_snapshot["Fecha de Snapshot"] = hoy
+        df_snapshot["Fecha"] = df_snapshot["Fecha"].astype(str)
 
         client = authorize_google_sheets()
         try:
@@ -36,7 +38,7 @@ def guardar_snapshot_diario(df_actual):
         if "Fecha de Snapshot" in df_hist.columns and hoy in df_hist["Fecha de Snapshot"].values:
             return  # Ya existe snapshot hoy
 
-        hoja_hist.append_rows(df_actual.values.tolist())
+        hoja_hist.append_rows(df_snapshot.values.tolist())
 
     except Exception as e:
         st.warning(f"⚠️ No se pudo guardar snapshot histórico: {e}")
