@@ -77,10 +77,10 @@ if not pendientes.empty:
 # GRÁFICOS
 from calendar import month_name
 
-# Lista de meses en orden
+# 📅 Lista de meses en inglés en orden cronológico
 meses_ordenados = list(month_name)[1:]  # ['January', ..., 'December']
 
-# Convertimos 'Mes' a inglés si viene en español
+# 🔁 Diccionario para traducir meses de español a inglés
 mes_traduccion = {
     "Enero": "January", "Febrero": "February", "Marzo": "March",
     "Abril": "April", "Mayo": "May", "Junio": "June",
@@ -88,16 +88,21 @@ mes_traduccion = {
     "Octubre": "October", "Noviembre": "November", "Diciembre": "December"
 }
 
+# 🧼 Convertimos Mes a Mes_EN para graficar y eliminamos NaN
 df_filtrado["Mes_EN"] = df_filtrado["Mes"].map(mes_traduccion)
+df_filtrado = df_filtrado.dropna(subset=["Mes_EN"])
 
-# Gráfica
+# 📊 Gráfico de gasto mensual en orden cronológico
 st.subheader("📈 Gasto total por mes")
 gasto_mes = df_filtrado.groupby("Mes_EN")["Monto"].sum().reset_index()
-st.altair_chart(alt.Chart(gasto_mes).mark_bar().encode(
+
+chart_mes = alt.Chart(gasto_mes).mark_bar().encode(
     x=alt.X("Mes_EN", sort=meses_ordenados, title="Mes"),
-    y="Monto",
+    y=alt.Y("Monto", title="Monto Total"),
     tooltip=["Mes_EN", "Monto"]
-), use_container_width=True)
+)
+
+st.altair_chart(chart_mes, use_container_width=True)
 
 
 st.subheader("🏦 Gasto por categoría")
