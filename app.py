@@ -74,7 +74,12 @@ else:
         st.stop()
 
 # --- LIMPIEZA Y VALIDACIÓN ---
-df.columns = df.columns.str.strip()
+if all(isinstance(col, str) for col in df.columns):
+    df.columns = df.columns.str.strip()
+else:
+    st.error("❌ Las columnas del archivo no son válidas. Verifica que la primera fila de tu Google Sheet tenga nombres de columnas.")
+    st.stop()
+
 df = df.rename(columns={"Fecha de Pago": "Fecha", "Banco": "Categoría"})
 df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
 
