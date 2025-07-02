@@ -24,17 +24,15 @@ def load_google_sheet():
 # --- CARGAR DATOS: CSV tiene prioridad si se sube ---
 if uploaded_file:
     try:
-        df = pd.read_csv(uploaded_file, encoding="utf-8")
+        df = pd.read_csv(uploaded_file, encoding='utf-8')
     except UnicodeDecodeError:
-        df = pd.read_csv(uploaded_file, encoding="latin1")
+        try:
+            df = pd.read_csv(uploaded_file, encoding='latin1')
+        except Exception as e:
+            st.error(f"❌ No se pudo leer el archivo. Error: {e}")
+            st.stop()
     st.success("✅ Datos cargados desde archivo CSV.")
-else:
-    try:
-        df = load_google_sheet()
-        st.success("✅ Datos cargados desde Google Sheets.")
-    except Exception as e:
-        st.error("❌ Error al cargar desde Google Sheets.")
-        st.stop()
+
 
 # --- LIMPIEZA Y RENOMBRE DE COLUMNAS ---
 df.columns = df.columns.str.strip()
