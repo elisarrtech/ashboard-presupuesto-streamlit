@@ -81,6 +81,33 @@ if not pendientes.empty:
     with st.expander("Ver pendientes"):
         st.dataframe(pendientes)
 
+# --- FORMULARIO PARA AGREGAR NUEVOS REGISTROS ---
+st.subheader("➕ Agregar nuevo gasto manualmente")
+
+with st.form("formulario_nuevo_gasto"):
+    col_a, col_b = st.columns(2)
+    fecha_nueva = col_a.date_input("📅 Fecha de Pago", value=datetime.today())
+    categoria_nueva = col_b.text_input("🏦 Categoría (Banco, cuenta, tarjeta)", "")
+
+    concepto_nuevo = st.text_input("📝 Concepto", "")
+    monto_nuevo = st.number_input("💵 Monto", min_value=0.0, step=0.01)
+    status_nuevo = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"])
+
+    submitted = st.form_submit_button("✅ Agregar gasto")
+
+if submitted:
+    nuevo = {
+        "Fecha": pd.to_datetime(fecha_nueva),
+        "Categoría": categoria_nueva.strip().upper(),
+        "Concepto": concepto_nuevo.strip().capitalize(),
+        "Monto": monto_nuevo,
+        "Status": status_nuevo
+    }
+
+    df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
+    st.success("✅ Gasto agregado correctamente.")
+
+
 # --- GRÁFICO: Gasto por Mes ---
 st.subheader("📈 Gasto total por mes")
 gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
