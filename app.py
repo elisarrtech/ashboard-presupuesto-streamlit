@@ -13,7 +13,7 @@ st.title("📊 Dashboard de Presupuesto de Gastos")
 
 # --- FUNCIÓN PARA AUTORIZAR GOOGLE SHEETS DESDE SECRETS ---
 def authorize_google_sheets():
-    creds_dict = json.loads(st.secrets["gcp_service_account"])
+    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict)
     client = gspread.authorize(creds)
     return client
@@ -114,51 +114,81 @@ st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
 st.subheader("📄 Detalle de gastos filtrados")
 st.dataframe(df_filtrado.sort_values("Fecha"))
 
-
 # --- MÓDULO DE EDICIÓN DE REGISTROS ---
 st.header("✏️ Editar registros existentes")
 
 try:
     df_edicion = load_google_sheet()
-    df_edicion = df_edicion.reset_index(drop=True)
+    df_edicion["Fecha"] = pd.to_datetime(df_edicion["Fecha"], errors="coerce")
+    df_edicion["Identificador"] = df_edicion.index.astype(str) + " - " + df_edicion["Concepto"]
 
-    if not df_edicion.empty and "Concepto" in df_edicion.columns:
-        df_edicion["Identificador"] = df_edicion.index.astype(str) + " - " + df_edicion["Concepto"].astype(str)
+    selected_id = st.selectbox("🔎 Selecciona un registro para editar", df_edicion["Identificador"])
 
-        selected_id = st.selectbox("🔎 Selecciona un registro para editar", df_edicion["Identificador"])
+    if selected_id:
+        index_to_edit = int(selected_id.split(" - ")[0])
+        row_data = df_edicion.loc[index_to_edit]
 
-        if selected_id:
-            index_to_edit = int(selected_id.split(" - ")[0])
-            row_data = df_edicion.loc[index_to_edit]
+        with st.form(key="edit_form"):
+            nueva_fecha = st.date_input("📅 Fecha", value=row_data["Fecha"].date())
+            nueva_categoria = st.text_input("🏦 Categoría", value=row_data["Categoría"])
+            nuevo_concepto = st.text_input("📝 Concepto", value=row_data["Concepto"])
+            nuevo_monto = st.number_input("💵 Monto", min_value=0.0, value=float(row_data["Monto"]))
+            nuevo_status = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"], index=["PAGADO", "PENDIENTE"].index(row_data["Status"]))
+            guardar = st.form_submit_button("💾 Guardar cambios")
 
-            with st.form(key="edit_form"):
-                nueva_fecha = st.date_input("📅 Fecha", value=pd.to_datetime(row_data["Fecha"]))
-                nueva_categoria = st.text_input("🏦 Categoría", value=row_data["Categoría"])
-                nuevo_concepto = st.text_input("📝 Concepto", value=row_data["Concepto"])
-                nuevo_monto = st.number_input("💵 Monto", min_value=0.0, value=float(row_data["Monto"]))
-                nuevo_status = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"], index=["PAGADO", "PENDIENTE"].index(row_data["Status"]))
-                guardar = st.form_submit_button("💾 Guardar cambios")
+        if guardar:
+            df_edicion.at[index_to_edit, "Fecha"] = nueva_fecha.strftime("%Y-%m-%d")
+            df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
+            df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
+            df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
+            df_edicion.at[index_to_edit, "Status"] = nuevo_status
+            df_edicion.at[index_to_edit, "Mes"] = meses_es[nueva_fecha.month]
 
-            if guardar:
-                df_edicion.at[index_to_edit, "Fecha"] = nueva_fecha.strftime("%Y-%m-%d")
-                df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
-                df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
-                df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
-                df_edicion.at[index_to_edit, "Status"] = nuevo_status
-                df_edicion.at[index_to_edit, "Mes"] = meses_es[nueva_fecha.month]
+            client = authorize_google_sheets()
+            sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
 
-                # Guardar en Google Sheets
-                client = authorize_google_sheets()
-                sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
-                sheet.clear()
-                sheet.update([df_edicion.columns.tolist()] + df_edicion.values.tolist())
+            sheet.clear()
+            sheet.update([df_edicion.columns.values.tolist()] + df_edicion.values.tolist())
 
-                st.success("✅ Registro actualizado correctamente.")
-                st.experimental_rerun()
-
-    else:
-        st.info("ℹ️ No hay registros para editar o falta la columna 'Concepto'.")
+            st.success("✅ Registro editado correctamente.")
+            st.experimental_rerun()
 
 except Exception as e:
     st.error(f"❌ Error en módulo de edición: {e}")
 
+# --- MÓDULO PARA AGREGAR NUEVOS REGISTROS ---
+st.header("➕ Agregar nuevo registro")
+
+with st.form("new_entry_form"):
+    nueva_fecha = st.date_input("📅 Fecha del gasto")
+    nueva_categoria = st.text_input("🏦 Categoría")
+    nuevo_concepto = st.text_input("📝 Concepto")
+    nuevo_monto = st.number_input("💵 Monto", min_value=0.0, step=1.0)
+    nuevo_status = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"])
+    agregar = st.form_submit_button("➕ Agregar registro")
+
+if agregar:
+    try:
+        nuevo_mes = meses_es[nueva_fecha.month]
+        nuevo_registro = {
+            "Fecha": nueva_fecha.strftime("%Y-%m-%d"),
+            "Categoría": nueva_categoria,
+            "Concepto": nuevo_concepto,
+            "Monto": nuevo_monto,
+            "Status": nuevo_status,
+            "Mes": nuevo_mes
+        }
+
+        df_nuevo = load_google_sheet()
+        df_nuevo = pd.concat([df_nuevo, pd.DataFrame([nuevo_registro])], ignore_index=True)
+
+        client = authorize_google_sheets()
+        sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+        sheet.clear()
+        sheet.update([df_nuevo.columns.values.tolist()] + df_nuevo.values.tolist())
+
+        st.success("✅ Nuevo registro agregado correctamente.")
+        st.experimental_rerun()
+
+    except Exception as e:
+        st.error(f"❌ Error al agregar nuevo registro: {e}")
