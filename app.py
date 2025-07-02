@@ -133,3 +133,50 @@ st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
 # --- TABLA FINAL ---
 st.subheader("📄 Detalle de gastos filtrados")
 st.dataframe(df_filtrado.sort_values("Fecha"))
+
+# =========================
+# FORMULARIO PARA NUEVO REGISTRO
+# =========================
+st.header("📝 Agregar nuevo registro de gasto")
+
+with st.form("formulario_gasto"):
+    col1, col2 = st.columns(2)
+    fecha = col1.date_input("📅 Fecha del gasto", value=datetime.today())
+    categoria = col2.text_input("🏦 Categoría", placeholder="Ej. SANTANDER")
+
+    concepto = st.text_input("🧾 Concepto del gasto", placeholder="Ej. Pago de tarjeta")
+    monto = st.number_input("💲 Monto", min_value=0.0, step=10.0)
+    status = st.selectbox("📌 Estatus del gasto", options=["PAGADO", "PENDIENTE"])
+
+    submit = st.form_submit_button("➕ Agregar registro")
+
+if submit:
+    try:
+        # Cálculo automático del mes
+        mes = fecha.strftime("%B")
+
+        # Crear diccionario del nuevo registro
+        nuevo_registro = {
+            "Fecha": fecha.strftime("%Y-%m-%d"),
+            "Categoría": categoria.strip(),
+            "Concepto": concepto.strip(),
+            "Monto": monto,
+            "Status": status,
+            "Mes": mes
+        }
+
+        # Conectarse y agregar fila
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+
+        sheet.append_row(list(nuevo_registro.values()))
+        st.success("✅ Registro agregado correctamente")
+
+        # Recargar datos para que se vea reflejado
+        st.experimental_rerun()
+
+    except Exception as e:
+        st.error(f"❌ No se pudo guardar el registro: {e}")
+
