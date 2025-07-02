@@ -47,6 +47,7 @@ else:
     except Exception as e:
         st.error(f"❌ Error al cargar desde Google Sheets: {e}")
         st.stop()
+
 # --- LIMPIEZA Y VALIDACIÓN ---
 df.columns = df.columns.str.strip()
 df = df.rename(columns={"Fecha de Pago": "Fecha", "Banco": "Categoría"})
@@ -112,6 +113,7 @@ st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
 # --- TABLA FINAL ---
 st.subheader("📄 Detalle de gastos filtrados")
 st.dataframe(df_filtrado.sort_values("Fecha"))
+
 
 # --- MÓDULO DE EDICIÓN DE REGISTROS ---
 st.header("✏️ Editar registros existentes")
