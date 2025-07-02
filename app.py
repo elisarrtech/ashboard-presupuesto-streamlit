@@ -13,7 +13,7 @@ st.title("📊 Dashboard de Presupuesto de Gastos")
 
 # --- FUNCIÓN PARA AUTORIZAR GOOGLE SHEETS DESDE SECRETS ---
 def authorize_google_sheets():
-    creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+    creds_dict = json.loads(st.secrets["gcp_service_account"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict)
     client = gspread.authorize(creds)
     return client
