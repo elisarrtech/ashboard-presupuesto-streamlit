@@ -16,16 +16,12 @@ sheet_id = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
 # --- CARGA MANUAL OPCIONAL ---
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
 
-# --- FUNCIÓN PARA LEER DESDE GOOGLE SHEETS ---
-def load_google_sheet():
+# --- FUNCIÓN PARA AUTORIZAR GOOGLE SHEETS DESDE SECRETS ---
+def authorize_google_sheets():
     creds_dict = json.loads(st.secrets["gcp_service_account"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict)
-
     client = gspread.authorize(creds)
-    sheet = client.open_by_key(sheet_id).sheet1
-    data = sheet.get_all_records()
-    df = pd.DataFrame(data)
-    return df
+    return client
 
 # --- CARGAR DATOS: CSV tiene prioridad si se sube ---
 if uploaded_file:
