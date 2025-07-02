@@ -10,7 +10,7 @@ st.title("📊 Dashboard de Presupuesto de Gastos")
 # Cargar datos
 @st.cache_data
 def load_data():
-    df = pd.read_csv("presupuesto_consolidado_v2.csv", parse_dates=["Fecha"])
+    df = pd.read_csv("presupuesto_consolidado_v2(1).csv", parse_dates=["Fecha"])
     return df
 
 df = load_data()
