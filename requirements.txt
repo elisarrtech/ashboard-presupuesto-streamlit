@@ -1,7 +1,9 @@
 streamlit
 pandas
+altair
+gspread
+oauth2clientstreamlit
 plotly
 xlsxwriter
-gspread
 oauth2client
 
