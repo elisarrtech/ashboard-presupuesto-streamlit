@@ -5,16 +5,11 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from calendar import month_name
+import json
+import os
 
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
-
-# --- CONFIGURACIÓN GOOGLE SHEETS ---
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-sheet_id = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
-
-# --- CARGA MANUAL OPCIONAL ---
-uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
 
 # --- FUNCIÓN PARA AUTORIZAR GOOGLE SHEETS DESDE SECRETS ---
 def authorize_google_sheets():
@@ -22,6 +17,17 @@ def authorize_google_sheets():
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict)
     client = gspread.authorize(creds)
     return client
+
+# --- CARGA MANUAL OPCIONAL ---
+uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
+
+# --- FUNCIÓN PARA LEER DESDE GOOGLE SHEETS ---
+def load_google_sheet():
+    client = authorize_google_sheets()
+    sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+    data = sheet.get_all_records()
+    df = pd.DataFrame(data)
+    return df
 
 # --- CARGAR DATOS: CSV tiene prioridad si se sube ---
 if uploaded_file:
@@ -41,7 +47,6 @@ else:
     except Exception as e:
         st.error(f"❌ Error al cargar desde Google Sheets: {e}")
         st.stop()
-
 # --- LIMPIEZA Y VALIDACIÓN ---
 df.columns = df.columns.str.strip()
 df = df.rename(columns={"Fecha de Pago": "Fecha", "Banco": "Categoría"})
