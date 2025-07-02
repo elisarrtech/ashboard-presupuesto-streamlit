@@ -151,7 +151,8 @@ try:
             sheet.update([df_edicion.columns.values.tolist()] + df_edicion.values.tolist())
 
             st.success("✅ Registro editado correctamente.")
-            st.experimental_rerun()
+            st.rerun()
+
 
 except Exception as e:
     st.error(f"❌ Error en módulo de edición: {e}")
@@ -188,7 +189,8 @@ if agregar:
         sheet.update([df_nuevo.columns.values.tolist()] + df_nuevo.values.tolist())
 
         st.success("✅ Nuevo registro agregado correctamente.")
-        st.experimental_rerun()
+        st.rerun()
+
 
     except Exception as e:
         st.error(f"❌ Error al agregar nuevo registro: {e}")
