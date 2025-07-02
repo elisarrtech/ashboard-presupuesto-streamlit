@@ -9,15 +9,18 @@ from calendar import month_name
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
 
+# --- CONFIGURACIÓN GOOGLE SHEETS ---
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+sheet_id = "1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao"
+
 # --- CARGA MANUAL OPCIONAL ---
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
 
 # --- FUNCIÓN PARA LEER DESDE GOOGLE SHEETS ---
 def load_google_sheet():
-    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
     client = gspread.authorize(creds)
-    sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
+    sheet = client.open_by_key(sheet_id).sheet1
     data = sheet.get_all_records()
     df = pd.DataFrame(data)
     return df
@@ -81,33 +84,6 @@ if not pendientes.empty:
     with st.expander("Ver pendientes"):
         st.dataframe(pendientes)
 
-# --- FORMULARIO PARA AGREGAR NUEVOS REGISTROS ---
-st.subheader("➕ Agregar nuevo gasto manualmente")
-
-with st.form("formulario_nuevo_gasto"):
-    col_a, col_b = st.columns(2)
-    fecha_nueva = col_a.date_input("📅 Fecha de Pago", value=datetime.today())
-    categoria_nueva = col_b.text_input("🏦 Categoría (Banco, cuenta, tarjeta)", "")
-
-    concepto_nuevo = st.text_input("📝 Concepto", "")
-    monto_nuevo = st.number_input("💵 Monto", min_value=0.0, step=0.01)
-    status_nuevo = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"])
-
-    submitted = st.form_submit_button("✅ Agregar gasto")
-
-if submitted:
-    nuevo = {
-        "Fecha": pd.to_datetime(fecha_nueva),
-        "Categoría": categoria_nueva.strip().upper(),
-        "Concepto": concepto_nuevo.strip().capitalize(),
-        "Monto": monto_nuevo,
-        "Status": status_nuevo
-    }
-
-    df = pd.concat([df, pd.DataFrame([nuevo])], ignore_index=True)
-    st.success("✅ Gasto agregado correctamente.")
-
-
 # --- GRÁFICO: Gasto por Mes ---
 st.subheader("📈 Gasto total por mes")
 gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
@@ -134,60 +110,11 @@ st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
 st.subheader("📄 Detalle de gastos filtrados")
 st.dataframe(df_filtrado.sort_values("Fecha"))
 
-# =========================
-# FORMULARIO PARA NUEVO REGISTRO
-# =========================
-st.header("📝 Agregar nuevo registro de gasto")
-
-with st.form("formulario_gasto"):
-    col1, col2 = st.columns(2)
-    fecha = col1.date_input("📅 Fecha del gasto", value=datetime.today())
-    categoria = col2.text_input("🏦 Categoría", placeholder="Ej. SANTANDER")
-
-    concepto = st.text_input("🧾 Concepto del gasto", placeholder="Ej. Pago de tarjeta")
-    monto = st.number_input("💲 Monto", min_value=0.0, step=10.0)
-    status = st.selectbox("📌 Estatus del gasto", options=["PAGADO", "PENDIENTE"])
-
-    submit = st.form_submit_button("➕ Agregar registro")
-
-if submit:
-    try:
-        # Cálculo automático del mes
-        mes = fecha.strftime("%B")
-
-        # Crear diccionario del nuevo registro
-        nuevo_registro = {
-            "Fecha": fecha.strftime("%Y-%m-%d"),
-            "Categoría": categoria.strip(),
-            "Concepto": concepto.strip(),
-            "Monto": monto,
-            "Status": status,
-            "Mes": mes
-        }
-
-        # Conectarse y agregar fila
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        creds = ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
-        client = gspread.authorize(creds)
-        sheet = client.open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
-
-        sheet.append_row(list(nuevo_registro.values()))
-        st.success("✅ Registro agregado correctamente")
-
-        # Recargar datos para que se vea reflejado
-        st.experimental_rerun()
-
-    except Exception as e:
-        st.error(f"❌ No se pudo guardar el registro: {e}")
-
 # --- MÓDULO DE EDICIÓN DE REGISTROS ---
 st.header("✏️ Editar registros existentes")
 
 try:
-    # Recargar datos actualizados
     df_edicion = load_google_sheet()
-
-    # Selector de fila por índice o concepto
     df_edicion["Identificador"] = df_edicion.index.astype(str) + " - " + df_edicion["Concepto"]
 
     selected_id = st.selectbox("🔎 Selecciona un registro para editar", df_edicion["Identificador"])
@@ -202,52 +129,25 @@ try:
             nuevo_concepto = st.text_input("📝 Concepto", value=row_data["Concepto"])
             nuevo_monto = st.number_input("💵 Monto", min_value=0.0, value=float(row_data["Monto"]))
             nuevo_status = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"], index=["PAGADO", "PENDIENTE"].index(row_data["Status"]))
-            submit = st.form_submit_button("💾 Guardar cambios")
+            guardar = st.form_submit_button("💾 Guardar cambios")
 
-        if submit:
-            # Actualizamos los valores
+        if guardar:
             df_edicion.at[index_to_edit, "Fecha"] = nueva_fecha.strftime("%Y-%m-%d")
             df_edicion.at[index_to_edit, "Categoría"] = nueva_categoria
             df_edicion.at[index_to_edit, "Concepto"] = nuevo_concepto
             df_edicion.at[index_to_edit, "Monto"] = nuevo_monto
-        
+            df_edicion.at[index_to_edit, "Status"] = nuevo_status
+            df_edicion.at[index_to_edit, "Mes"] = meses_es[nueva_fecha.month]
 
-# --- MÓDULO PARA AGREGAR NUEVOS REGISTROS ---
-st.header("➕ Agregar nuevo gasto")
+            sheet = gspread.authorize(
+                ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
+            ).open_by_key(sheet_id).sheet1
 
-with st.form("form_nuevo_gasto"):
-    fecha_nueva = st.date_input("📅 Fecha del gasto", value=datetime.today())
-    categoria_nueva = st.text_input("🏦 Categoría", placeholder="Ej. SANTANDER")
-    concepto_nuevo = st.text_input("📝 Concepto", placeholder="Ej. Pago mensual tarjeta")
-    monto_nuevo = st.number_input("💵 Monto", min_value=0.0, step=100.0)
-    status_nuevo = st.selectbox("📌 Status", ["PAGADO", "PENDIENTE"])
-    boton_guardar = st.form_submit_button("✅ Guardar nuevo gasto")
+            sheet.clear()
+            sheet.update([df_edicion.columns.values.tolist()] + df_edicion.values.tolist())
 
-if boton_guardar:
-    try:
-        # Cargar datos actuales
-        df_actual = load_google_sheet()
+            st.success("✅ Registro editado correctamente.")
+            st.experimental_rerun()
 
-        # Crear nuevo registro
-        nuevo_registro = {
-            "Fecha": fecha_nueva.strftime("%Y-%m-%d"),
-            "Categoría": categoria_nueva,
-            "Concepto": concepto_nuevo,
-            "Monto": monto_nuevo,
-            "Status": status_nuevo,
-            "Mes": fecha_nueva.strftime("%B")
-        }
-
-        df_actual = df_actual.append(nuevo_registro, ignore_index=True)
-
-        # Guardar en Google Sheets
-        sheet = gspread.authorize(
-            ServiceAccountCredentials.from_json_keyfile_name("google_creds.json", scope)
-        ).open_by_key("1kVoN3RZgxaKeZ9Pe4RdaCg-5ugr37S8EKHVWhetG2Ao").sheet1
-
-        sheet.clear()
-        sheet.update([df_actual.columns.values.tolist()] + df_actual.values.tolist())
-
-        st.success("✅ Gasto agregado exitosamente.")
-    except Exception as e:
-        st.error(f"❌ Error al guardar el nuevo gasto: {e}")
+except Exception as e:
+    st.error(f"❌ Error al cargar módulo de edición: {e}")
