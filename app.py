@@ -25,11 +25,6 @@ if authentication_status:
 
     # Aquí va TODO el contenido de tu dashboard
 
-elif authentication_status is False:
-    st.error("❌ Nombre de usuario o contraseña incorrectos")
-
-elif authentication_status is None:
-    st.warning("⚠️ Por favor, inicia sesión")
     
 # Importaciones desde utils y components
 from utils.data_loader import get_gsheet_data, save_gsheet_data
@@ -154,3 +149,8 @@ else:
     st.success("✅ Todas las categorías están dentro del presupuesto.")
 
 
+elif authentication_status is False:
+    st.error("❌ Nombre de usuario o contraseña incorrectos")
+
+elif authentication_status is None:
+    st.warning("⚠️ Por favor, inicia sesión")
