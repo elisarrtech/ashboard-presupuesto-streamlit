@@ -19,6 +19,17 @@ authenticator = stauth.Authenticate(
 # Pantalla de login
 name, authentication_status, username = authenticator.login('Login', 'main')
 
+if authentication_status:
+    st.success("✅ Acceso concedido")
+    
+    # Aquí va TODO el contenido de tu dashboard
+    # (filtros, gráficos, edición, etc.)
+    
+elif authentication_status is False:
+    st.error("❌ Nombre de usuario o contraseña incorrectos")
+elif authentication_status is None:
+    st.warning("⚠️ Por favor, ingresa tus credenciales")
+
 # Importaciones desde utils y components
 from utils.data_loader import get_gsheet_data, save_gsheet_data
 from utils.data_processor import clean_and_validate_data, convert_df_to_csv
