@@ -4,11 +4,10 @@ import yaml
 from calendar import month_name
 import pandas as pd
 
-# Cargar configuración de autenticación
+# --- AUTENTICACIÓN ---
 with open('config.yaml') as file:
     config = yaml.safe_load(file)
 
-# Inicializar autenticador
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -16,14 +15,18 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
-# Pantalla de login
 name, authentication_status, username = authenticator.login('Login', 'main')
 
+# --- CONTROL DE ACCESO ---
 if authentication_status:
     st.success("✅ Acceso concedido")
-    
-    # Aquí va TODO el contenido de tu dashboard
-    # (filtros, gráficos, edición, etc.)
+    # Aquí va TODO el contenido de tu app
+
+elif authentication_status is False:
+    st.error("❌ Nombre de usuario o contraseña incorrectos")
+
+elif authentication_status is None:
+    st.warning("⚠️ Por favor, ingresa tus credenciales")
     
 # Importaciones desde utils y components
 from utils.data_loader import get_gsheet_data, save_gsheet_data
@@ -147,8 +150,4 @@ if not alertas.empty:
 else:
     st.success("✅ Todas las categorías están dentro del presupuesto.")
 
-elif not authentication_status:
-    st.error("❌ Nombre de usuario o contraseña incorrectos")
 
-elif authentication_status is None:
-    st.warning("⚠️ Por favor, ingresa tus credenciales")
