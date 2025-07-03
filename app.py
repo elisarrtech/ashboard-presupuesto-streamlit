@@ -5,8 +5,16 @@ from calendar import month_name
 import pandas as pd
 
 # --- CARGAR CONFIGURACIÓN ---
-with open('config.yaml') as file:
-    config = yaml.safe_load(file)
+import os
+import streamlit as st
+
+if "credentials_yaml" in st.secrets:
+    import yaml
+    from io import StringIO
+    config = yaml.safe_load(StringIO(st.secrets["credentials_yaml"]))
+else:
+    with open("config.yaml") as file:
+        config = yaml.safe_load(file)
 
 # --- INICIALIZAR AUTENTICADOR ---
 authenticator = stauth.Authenticate(
