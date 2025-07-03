@@ -34,3 +34,18 @@ def plot_gasto_por_categoria(df_filtrado):
 def show_filtered_table(df_filtrado):
     st.subheader("📄 Detalle de gastos filtrados")
     st.dataframe(df_filtrado.sort_values("Fecha"))
+
+def show_month_comparison(df):
+    df["Mes_num"] = df["Fecha"].dt.month
+    monthly_spending = df.groupby("Mes_num")["Monto"].sum().reset_index()
+
+    current_month = datetime.today().month
+    last_month = current_month - 1 if current_month > 1 else 12
+
+    current_total = monthly_spending[monthly_spending["Mes_num"] == current_month]["Monto"].sum()
+    last_total = monthly_spending[monthly_spending["Mes_num"] == last_month]["Monto"].sum()
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("📅 Mes actual", meses_es[current_month], delta="")
+    col2.metric("💰 Gasto mes actual", f"${current_total:,.0f}", delta=f"{current_total - last_total:,.0f} vs. mes anterior")
+    col3.metric("📅 Mes anterior", meses_es[last_month], delta="")
