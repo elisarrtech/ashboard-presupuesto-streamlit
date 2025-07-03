@@ -1,9 +1,9 @@
 # app.py
 import streamlit as st
 import pandas as pd
-from calendar import month_name  # ✅ Importación añadida aquí
+from calendar import month_name
 from utils.data_loader import get_gsheet_data, save_gsheet_data
-from utils.data_processor import clean_and_validate_data
+from utils.data_processor import clean_and_validate_data, convert_df_to_csv  # ✅ Función importada aquí
 from components.sidebar import render_sidebar
 from components.visuals import show_kpis, plot_gasto_por_mes, plot_gasto_por_categoria, show_filtered_table
 
