@@ -5,6 +5,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from calendar import month_name
+import json
 
 st.set_page_config(page_title="Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
