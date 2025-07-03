@@ -83,3 +83,13 @@ show_filtered_table(df_filtrado)
 # --- PRESUPUESTO POR CATEGORÍA ---
 from components.visuals import show_categoria_presupuesto
 df_presupuesto = show_categoria_presupuesto(df_filtrado, presupuesto_categoria)
+
+# --- ALERTAS ---
+st.subheader("⚠️ Alertas de Presupuesto Excedido")
+alertas = df_presupuesto[df_presupuesto["Diferencia"] > 0]
+
+if not alertas.empty:
+    for _, row in alertas.iterrows():
+        st.error(f"🔴 Categoría '{row['Categoría']}' excedió el presupuesto en ${row['Diferencia']:,.0f}")
+else:
+    st.success("✅ Todas las categorías están dentro del presupuesto.")
