@@ -1,6 +1,8 @@
 # components/sidebar.py
 import streamlit as st
 from datetime import datetime
+from calendar import month_name
+import pandas as pd  # ✅ Importación añadida aquí
 
 def render_sidebar(df, sheet):
     st.sidebar.header("➕ Agregar / ✏️ Editar Concepto")
