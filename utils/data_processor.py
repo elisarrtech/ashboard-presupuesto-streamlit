@@ -1,4 +1,5 @@
 # utils/data_processor.py
+import pandas as pd  # ✅ Importación añadida
 from calendar import month_name
 
 def clean_and_validate_data(df):
