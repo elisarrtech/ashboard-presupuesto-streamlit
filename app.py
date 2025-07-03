@@ -65,6 +65,7 @@ except ValueError as ve:
 render_sidebar(df, sheet)
 
 # --- FILTROS ---
+meses_es = {i: month_name[i] for i in range(1, 13)}
 meses = list(meses_es.values())
 categorias = df["Categoría"].dropna().unique()
 colf1, colf2 = st.columns(2)
@@ -72,6 +73,30 @@ mes_sel = colf1.multiselect("📅 Filtrar por mes", meses, default=meses)
 cat_sel = colf2.multiselect("🏦 Filtrar por categoría", sorted(categorias), default=categorias)
 
 df_filtrado = df[df["Mes"].isin(mes_sel) & df["Categoría"].isin(cat_sel)]
+
+# --- SELECCIÓN DINÁMICA DE CATEGORÍAS Y PRESUPUESTO ---
+st.sidebar.subheader("🎯 Selecciona categorías para comparar")
+
+# Obtener categorías únicas del DataFrame filtrado
+categorias_unicas = df_filtrado["Categoría"].dropna().unique()
+
+# Mostrar multiselect para elegir las categorías a comparar
+categorias_seleccionadas = st.sidebar.multiselect(
+    "Categorías disponibles", 
+    sorted(categorias_unicas), 
+    default=sorted(categorias_unicas)
+)
+
+# Permitir al usuario ingresar el presupuesto por categoría
+presupuesto_categoria = {}
+for cat in categorias_seleccionadas:
+    presupuesto = st.sidebar.number_input(
+        f"Presupuesto para {cat}", 
+        min_value=0.0, 
+        value=1000.0, 
+        key=f"pres_{cat}"
+    )
+    presupuesto_categoria[cat] = presupuesto
 
 # --- DESCARGA DE DATOS FILTRADOS ---
 st.subheader("⬇️ Descargar datos filtrados")
@@ -106,27 +131,3 @@ if not alertas.empty:
         st.error(f"🔴 Categoría '{row['Categoría']}' excedió el presupuesto en ${row['Diferencia']:,.0f}")
 else:
     st.success("✅ Todas las categorías están dentro del presupuesto.")
-
-# --- SELECCIÓN DINÁMICA DE CATEGORÍAS Y PRESUPUESTO ---
-st.sidebar.subheader("🎯 Selecciona categorías para comparar")
-
-# Obtener categorías únicas del DataFrame filtrado
-categorias_unicas = df_filtrado["Categoría"].dropna().unique()
-
-# Mostrar multiselect para elegir las categorías a comparar
-categorias_seleccionadas = st.sidebar.multiselect(
-    "Categorías disponibles", 
-    sorted(categorias_unicas), 
-    default=sorted(categorias_unicas)
-)
-
-# Permitir al usuario ingresar el presupuesto por categoría
-presupuesto_categoria = {}
-for cat in categorias_seleccionadas:
-    presupuesto = st.sidebar.number_input(
-        f"Presupuesto para {cat}", 
-        min_value=0.0, 
-        value=1000.0, 
-        key=f"pres_{cat}"
-    )
-    presupuesto_categoria[cat] = presupuesto
