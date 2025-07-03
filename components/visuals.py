@@ -10,6 +10,7 @@ def show_kpis(df):
     st.divider()
 
 import plotly.express as px
+import plotly.io as pio
 
 def plot_gasto_por_mes(df_filtrado):
     st.subheader("📈 Gasto total por mes")
@@ -19,6 +20,13 @@ def plot_gasto_por_mes(df_filtrado):
     fig = px.bar(gasto_mes, x="Mes", y="Monto", text_auto=True,
                  title="Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
     fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
+    
+    # Botón de descarga
+    if st.button("💾 Descargar gráfico como PNG"):
+        pio.write_image(fig, "gasto_por_mes.png")
+        with open("gasto_por_mes.png", "rb") as file:
+            btn = st.download_button(label="⬇️ Confirmar descarga", data=file, file_name="gasto_por_mes.png", mime="image/png")
+    
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_gasto_por_categoria(df_filtrado):
