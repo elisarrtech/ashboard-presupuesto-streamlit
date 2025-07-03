@@ -17,11 +17,12 @@ authenticator = stauth.Authenticate(
 )
 
 # --- LOGIN ---
-name, authentication_status, username = authenticator.login('Login', location='sidebar')
+name, authentication_status, username = authenticator.login('Login', location='main')
 
 # --- CONTROL DE ACCESO ---
 if authentication_status:
     st.success("✅ Acceso concedido")
+
     # Aquí va TODO el contenido de tu dashboard
 
 elif authentication_status is False:
