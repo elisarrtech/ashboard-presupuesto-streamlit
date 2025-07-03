@@ -1,7 +1,6 @@
 # app.py
 import streamlit as st
 import streamlit_authenticator as stauth
-import yaml
 from calendar import month_name
 import pandas as pd
 
@@ -9,31 +8,6 @@ import pandas as pd
 st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
 
-# --- CARGAR CONFIGURACIÓN (Autenticación) ---
-try:
-    # Si estamos en Streamlit Cloud
-    import yaml
-    from io import StringIO
-    config = yaml.safe_load(StringIO(st.secrets["credentials_yaml"]))
-except:
-    # Si estamos en local
-    with open("config.yaml") as file:
-        config = yaml.safe_load(file)
-
-# --- INICIALIZAR AUTENTICADOR ---
-authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days']
-)
-
-# --- LOGIN ---
-name, authentication_status, username = authenticator.login('Login', location='main')
-
-# --- CONTROL DE ACCESO ---
-if authentication_status:
-    st.success("✅ Acceso concedido")
 
     # Importaciones desde utils y components
     from utils.data_loader import get_gsheet_data, save_gsheet_data
@@ -150,8 +124,3 @@ if authentication_status:
     else:
         st.success("✅ Todas las categorías están dentro del presupuesto.")
 
-elif authentication_status is False:
-    st.error("❌ Nombre de usuario o contraseña incorrectos")
-
-elif authentication_status is None:
-    st.warning("⚠️ Por favor, inicia sesión")
