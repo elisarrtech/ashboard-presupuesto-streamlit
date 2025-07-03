@@ -39,6 +39,8 @@ except Exception as e:
     st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
     st.stop()
 
+st.write("Categorías únicas en tus datos:", df["Categoría"].unique())
+
 # --- CARGA MANUAL OPCIONAL ---
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
 if uploaded_file:
