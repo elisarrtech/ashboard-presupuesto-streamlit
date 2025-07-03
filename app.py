@@ -1,6 +1,29 @@
+# app.py
+import streamlit as st
+import pandas as pd
 from calendar import month_name
-meses_es = {i: month_name[i] for i in range(1, 13)} 
 
+# Importaciones desde utils y components
+from utils.data_loader import get_gsheet_data, save_gsheet_data
+from utils.data_processor import clean_and_validate_data, convert_df_to_csv
+from components.sidebar import render_sidebar
+from components.visuals import (
+    show_kpis,
+    plot_gasto_por_mes,
+    plot_gasto_por_categoria,
+    show_filtered_table,
+    show_month_comparison,
+    show_categoria_presupuesto
+)
+
+# Configuración inicial
+st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
+st.title("📊 Dashboard de Presupuesto de Gastos")
+
+# Diccionario de meses
+meses_es = {i: month_name[i] for i in range(1, 13)}
+
+# Definición del presupuesto por categoría
 presupuesto_categoria = {
     "Mercado": 5000,
     "Servicios": 3000,
@@ -9,24 +32,12 @@ presupuesto_categoria = {
     "Ocio": 1000,
 }
 
-# app.py
-import streamlit as st
-import pandas as pd
-from utils.data_loader import get_gsheet_data, save_gsheet_data
-from utils.data_processor import clean_and_validate_data, convert_df_to_csv  # ✅ Función importada aquí
-from components.sidebar import render_sidebar
-from components.visuals import show_kpis, plot_gasto_por_mes, plot_gasto_por_categoria, show_filtered_table, show_month_comparison
-
-st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
-st.title("📊 Dashboard de Presupuesto de Gastos")
-
 # --- CARGA DE DATOS ---
 try:
     df, sheet = get_gsheet_data()
 except Exception as e:
     st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
     st.stop()
-
 
 # --- CARGA MANUAL OPCIONAL ---
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
@@ -52,7 +63,6 @@ except ValueError as ve:
 render_sidebar(df, sheet)
 
 # --- FILTROS ---
-meses_es = {i: month_name[i] for i in range(1, 13)}
 meses = list(meses_es.values())
 categorias = df["Categoría"].dropna().unique()
 colf1, colf2 = st.columns(2)
@@ -72,17 +82,17 @@ st.download_button(
 )
 
 # --- COMPARACIÓN MENSUAL ---
-from components.visuals import show_month_comparison
 show_month_comparison(df_filtrado)
 
-# --- VISUALIZACIONES ---
+# --- KPIs ---
 show_kpis(df)
+
+# --- GRÁFICOS Y TABLA FINAL ---
 plot_gasto_por_mes(df_filtrado)
 plot_gasto_por_categoria(df_filtrado)
 show_filtered_table(df_filtrado)
 
 # --- PRESUPUESTO POR CATEGORÍA ---
-from components.visuals import show_categoria_presupuesto
 df_presupuesto = show_categoria_presupuesto(df_filtrado, presupuesto_categoria)
 
 # --- ALERTAS ---
