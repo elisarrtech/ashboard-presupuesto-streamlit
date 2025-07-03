@@ -24,11 +24,12 @@ def plot_gasto_por_mes(df_filtrado):
 def plot_gasto_por_categoria(df_filtrado):
     st.subheader("🏦 Gasto por categoría")
     gasto_cat = df_filtrado.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
-    st.altair_chart(alt.Chart(gasto_cat).mark_bar().encode(
-        x="Monto",
-        y=alt.Y("Categoría", sort="-x"),
-        tooltip=["Categoría", "Monto"]
-    ), use_container_width=True)
+
+    fig = px.bar(gasto_cat, x="Monto", y="Categoría", orientation='h', text_auto=True,
+                 title="Gasto total por categoría", labels={"Monto": "Monto Total", "Categoría": "Categoría"})
+    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+    fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
+    st.plotly_chart(fig, use_container_width=True)
 
 def show_filtered_table(df_filtrado):
     st.subheader("📄 Detalle de gastos filtrados")
