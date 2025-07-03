@@ -3,8 +3,9 @@ from calendar import month_name
 
 def clean_and_validate_data(df):
     required_columns = ["Fecha de Pago", "Banco", "Concepto", "Monto", "Status"]
-    
-    df.columns = df.columns.str.strip()
+
+    # Aseguramos que los nombres de las columnas sean strings y sin espacios extra
+    df.columns = df.columns.astype(str).str.strip()
     current_cols = list(df.columns)
 
     if not all([rc in current_cols for rc in required_columns]):
