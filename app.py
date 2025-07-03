@@ -22,7 +22,7 @@ def get_gsheet_data():
 
 def save_gsheet_data(sheet, df):
     sheet.clear()
-    sheet.update([df.columns.values.tolist()] + df.values.tolist())
+    sheet.update([list(map(str, df.columns))] + df.astype(str).values.tolist())
 
 # --- CARGA MANUAL OPCIONAL ---
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
