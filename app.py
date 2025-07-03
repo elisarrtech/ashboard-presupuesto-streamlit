@@ -17,7 +17,7 @@ authenticator = stauth.Authenticate(
 )
 
 # --- LOGIN ---
-name, authentication_status, username = authenticator.login('Login', location='main')
+name, authentication_status, username = authenticator.login('Login')
 
 # --- CONTROL DE ACCESO ---
 if authentication_status:
