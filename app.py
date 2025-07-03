@@ -62,6 +62,10 @@ st.download_button(
     mime="text/csv"
 )
 
+# --- COMPARACIÓN MENSUAL ---
+from components.visuals import show_month_comparison
+show_month_comparison(df_filtrado)
+
 # --- VISUALIZACIONES ---
 show_kpis(df)
 plot_gasto_por_mes(df_filtrado)
