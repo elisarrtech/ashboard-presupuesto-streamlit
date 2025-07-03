@@ -79,3 +79,7 @@ show_kpis(df)
 plot_gasto_por_mes(df_filtrado)
 plot_gasto_por_categoria(df_filtrado)
 show_filtered_table(df_filtrado)
+
+# --- PRESUPUESTO POR CATEGORÍA ---
+from components.visuals import show_categoria_presupuesto
+df_presupuesto = show_categoria_presupuesto(df_filtrado, presupuesto_categoria)
