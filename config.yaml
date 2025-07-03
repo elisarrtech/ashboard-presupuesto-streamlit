@@ -1,0 +1,14 @@
+credentials:
+  usernames:
+    user1:
+      email: user1@example.com
+      name: Usuario Uno
+      password: '1234'  # Contraseña sin encriptar (ejemplo, luego usaremos hash)
+
+cookie:
+  expiry_days: 1
+  key: auth_cookie_key
+  name: auth_cookie_name
+
+preauthorized:
+  emails: []
