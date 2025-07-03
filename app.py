@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 from calendar import month_name
+meses_es = {i: month_name[i] for i in range(1, 13)}
 from utils.data_loader import get_gsheet_data, save_gsheet_data
 from utils.data_processor import clean_and_validate_data, convert_df_to_csv  # ✅ Función importada aquí
 from components.sidebar import render_sidebar
