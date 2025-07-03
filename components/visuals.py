@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.io as pio
 from calendar import month_name
 from datetime import datetime
+import pandas as pd  # ✅ Importación añadida aquí
 
 # Diccionario de meses en español
 meses_es = {i: month_name[i] for i in range(1, 13)}
