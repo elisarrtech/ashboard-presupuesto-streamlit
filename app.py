@@ -1,3 +1,6 @@
+from calendar import month_name
+meses_es = {i: month_name[i] for i in range(1, 13)} 
+
 presupuesto_categoria = {
     "Mercado": 5000,
     "Servicios": 3000,
@@ -9,12 +12,10 @@ presupuesto_categoria = {
 # app.py
 import streamlit as st
 import pandas as pd
-from calendar import month_name
-meses_es = {i: month_name[i] for i in range(1, 13)}
 from utils.data_loader import get_gsheet_data, save_gsheet_data
 from utils.data_processor import clean_and_validate_data, convert_df_to_csv  # ✅ Función importada aquí
 from components.sidebar import render_sidebar
-from components.visuals import show_kpis, plot_gasto_por_mes, plot_gasto_por_categoria, show_filtered_table
+from components.visuals import show_kpis, plot_gasto_por_mes, plot_gasto_por_categoria, show_filtered_table, show_month_comparison
 
 st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
