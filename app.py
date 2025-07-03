@@ -51,6 +51,16 @@ cat_sel = colf2.multiselect("🏦 Filtrar por categoría", sorted(categorias), d
 
 df_filtrado = df[df["Mes"].isin(mes_sel) & df["Categoría"].isin(cat_sel)]
 
+# --- DESCARGA DE DATOS FILTRADOS ---
+st.subheader("⬇️ Descargar datos filtrados")
+csv = convert_df_to_csv(df_filtrado)
+st.download_button(
+    label="📥 Descargar CSV",
+    data=csv,
+    file_name="datos_presupuesto_filtrados.csv",
+    mime="text/csv"
+)
+
 # --- VISUALIZACIONES ---
 show_kpis(df)
 plot_gasto_por_mes(df_filtrado)
