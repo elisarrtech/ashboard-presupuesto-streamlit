@@ -1,3 +1,11 @@
+presupuesto_categoria = {
+    "Mercado": 5000,
+    "Servicios": 3000,
+    "Renta": 8000,
+    "Transporte": 1500,
+    "Ocio": 1000,
+}
+
 # app.py
 import streamlit as st
 import pandas as pd
