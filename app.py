@@ -1,7 +1,23 @@
-# app.py
 import streamlit as st
-import pandas as pd
+import streamlit_authenticator as stauth
+import yaml
 from calendar import month_name
+import pandas as pd
+
+# Cargar configuración de autenticación
+with open('config.yaml') as file:
+    config = yaml.safe_load(file)
+
+# Inicializar autenticador
+authenticator = stauth.Authenticate(
+    config['credentials'],
+    config['cookie']['name'],
+    config['cookie']['key'],
+    config['cookie']['expiry_days']
+)
+
+# Pantalla de login
+name, authentication_status, username = authenticator.login('Login', 'main')
 
 # Importaciones desde utils y components
 from utils.data_loader import get_gsheet_data, save_gsheet_data
