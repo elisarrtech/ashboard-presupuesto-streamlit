@@ -1,11 +1,11 @@
 # components/visuals.py
-
 import streamlit as st
 import plotly.express as px
 import plotly.io as pio
 from calendar import month_name
 from datetime import datetime
 
+# Diccionario de meses en español
 meses_es = {i: month_name[i] for i in range(1, 13)}
 
 def show_kpis(df):
@@ -37,7 +37,7 @@ def plot_gasto_por_categoria(df_filtrado):
 
     fig = px.bar(gasto_cat, x="Monto", y="Categoría", orientation='h', text_auto=True,
                  title="Gasto total por categoría", labels={"Monto": "Monto Total", "Categoría": "Categoría"})
-    fig.update_layout(yaxis={'categoryorder':'total ascending'})
+    fig.update_layout(yaxis={'categoryorder': 'total ascending'})
     fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
     st.plotly_chart(fig, use_container_width=True)
 
