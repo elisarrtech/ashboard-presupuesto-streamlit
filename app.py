@@ -147,7 +147,8 @@ if not alertas.empty:
 else:
     st.success("✅ Todas las categorías están dentro del presupuesto.")
 
-elif authentication_status is False:
+elif not authentication_status:
     st.error("❌ Nombre de usuario o contraseña incorrectos")
+
 elif authentication_status is None:
     st.warning("⚠️ Por favor, ingresa tus credenciales")
