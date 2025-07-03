@@ -64,7 +64,6 @@ def show_month_comparison(df):
 def show_categoria_presupuesto(df, presupuesto_categoria):
     st.subheader("🎯 Comparación: Gasto vs. Presupuesto por Categoría")
 
-    # Calcula los gastos por categoría
     gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index()
 
     data = []
@@ -72,17 +71,23 @@ def show_categoria_presupuesto(df, presupuesto_categoria):
         if cat in presupuesto_categoria:
             presupuesto = presupuesto_categoria[cat]
             gasto = gasto_cat[gasto_cat["Categoría"] == cat]["Monto"].sum()
+            
+            # Aseguramos valores numéricos
+            if pd.isna(gasto):
+                gasto = 0.0
+            if presupuesto is None:
+                presupuesto = 0.0
+
             data.append({
                 "Categoría": cat,
-                "Presupuesto": presupuesto,
-                "Gasto Real": gasto,
-                "Diferencia": gasto - presupuesto
+                "Presupuesto": float(presupuesto),
+                "Gasto Real": float(gasto),
+                "Diferencia": float(gasto - presupuesto)
             })
 
-    # Si no hay datos coincidentes
     if not data:
         st.warning("⚠️ No hay categorías coincidentes entre tus datos y el presupuesto definido.")
-        return pd.DataFrame()
+        return pd.DataFrame(columns=["Categoría", "Presupuesto", "Gasto Real", "Diferencia"])
 
     df_presupuesto = pd.DataFrame(data)
 
