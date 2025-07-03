@@ -25,11 +25,6 @@ if authentication_status:
     # Aquí va TODO el contenido de tu dashboard
     # (filtros, gráficos, edición, etc.)
     
-elif authentication_status is False:
-    st.error("❌ Nombre de usuario o contraseña incorrectos")
-elif authentication_status is None:
-    st.warning("⚠️ Por favor, ingresa tus credenciales")
-
 # Importaciones desde utils y components
 from utils.data_loader import get_gsheet_data, save_gsheet_data
 from utils.data_processor import clean_and_validate_data, convert_df_to_csv
@@ -151,3 +146,8 @@ if not alertas.empty:
         st.error(f"🔴 Categoría '{row['Categoría']}' excedió el presupuesto en ${row['Diferencia']:,.0f}")
 else:
     st.success("✅ Todas las categorías están dentro del presupuesto.")
+
+elif authentication_status is False:
+    st.error("❌ Nombre de usuario o contraseña incorrectos")
+elif authentication_status is None:
+    st.warning("⚠️ Por favor, ingresa tus credenciales")
