@@ -6,7 +6,6 @@ from utils.data_processor import clean_and_validate_data
 from components.sidebar import render_sidebar
 from components.visuals import show_kpis, plot_gasto_por_mes, plot_gasto_por_categoria, show_filtered_table
 
-# Configuración inicial
 st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
 
