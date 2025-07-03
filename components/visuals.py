@@ -49,3 +49,28 @@ def show_month_comparison(df):
     col1.metric("📅 Mes actual", meses_es[current_month], delta="")
     col2.metric("💰 Gasto mes actual", f"${current_total:,.0f}", delta=f"{current_total - last_total:,.0f} vs. mes anterior")
     col3.metric("📅 Mes anterior", meses_es[last_month], delta="")
+
+def show_categoria_presupuesto(df, presupuesto_categoria):
+    st.subheader("🎯 Comparación: Gasto vs. Presupuesto por Categoría")
+
+    gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index()
+    data = []
+
+    for cat, presupuesto in presupuesto_categoria.items():
+        gasto = gasto_cat[gasto_cat["Categoría"] == cat]["Monto"].sum()
+        data.append({
+            "Categoría": cat,
+            "Presupuesto": presupuesto,
+            "Gasto Real": gasto,
+            "Diferencia": gasto - presupuesto
+        })
+
+    df_presupuesto = pd.DataFrame(data)
+
+    # Mostrar tabla comparativa
+    st.dataframe(df_presupuesto.style.applymap(
+        lambda x: "background-color:red; color:white" if x > 0 and "Diferencia" in str(x) else "",
+        subset=["Diferencia"]
+    ))
+
+    return df_presupuesto
