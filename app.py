@@ -1,6 +1,7 @@
 # app.py
 import streamlit as st
 import pandas as pd
+from calendar import month_name  # ✅ Importación añadida aquí
 from utils.data_loader import get_gsheet_data, save_gsheet_data
 from utils.data_processor import clean_and_validate_data
 from components.sidebar import render_sidebar
@@ -15,6 +16,7 @@ try:
 except Exception as e:
     st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
     st.stop()
+
 
 # --- CARGA MANUAL OPCIONAL ---
 uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
