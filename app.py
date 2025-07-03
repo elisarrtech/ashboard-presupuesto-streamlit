@@ -1,18 +1,22 @@
+# app.py
 import streamlit as st
 import streamlit_authenticator as stauth
 import yaml
 from calendar import month_name
 import pandas as pd
 
-# --- CARGAR CONFIGURACIÓN ---
-import os
-import streamlit as st
+# --- CONFIGURACIÓN INICIAL ---
+st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
+st.title("📊 Dashboard de Presupuesto de Gastos")
 
-if "credentials_yaml" in st.secrets:
+# --- CARGAR CONFIGURACIÓN (Autenticación) ---
+try:
+    # Si estamos en Streamlit Cloud
     import yaml
     from io import StringIO
     config = yaml.safe_load(StringIO(st.secrets["credentials_yaml"]))
-else:
+except:
+    # Si estamos en local
     with open("config.yaml") as file:
         config = yaml.safe_load(file)
 
@@ -30,7 +34,7 @@ name, authentication_status, username = authenticator.login('Login', 'main')
 # --- CONTROL DE ACCESO ---
 if authentication_status:
     st.success("✅ Acceso concedido")
-    
+
     # Importaciones desde utils y components
     from utils.data_loader import get_gsheet_data, save_gsheet_data
     from utils.data_processor import clean_and_validate_data, convert_df_to_csv
@@ -42,10 +46,6 @@ if authentication_status:
         show_month_comparison,
         show_categoria_presupuesto
     )
-
-    # Configuración inicial
-    st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
-    st.title("📊 Dashboard de Presupuesto de Gastos")
 
     # Diccionario de meses
     meses_es = {i: month_name[i] for i in range(1, 13)}
@@ -108,17 +108,14 @@ if authentication_status:
     # --- SELECCIÓN DINÁMICA DE CATEGORÍAS Y PRESUPUESTO ---
     st.sidebar.subheader("🎯 Selecciona categorías para comparar")
 
-    # Obtener categorías únicas del DataFrame filtrado
     categorias_unicas = edited_df["Categoría"].dropna().unique()
 
-    # Mostrar multiselect para elegir las categorías a comparar
     categorias_seleccionadas = st.sidebar.multiselect(
         "Categorías disponibles", 
         sorted(categorias_unicas), 
         default=sorted(categorias_unicas)
     )
 
-    # Permitir al usuario ingresar el presupuesto por categoría
     presupuesto_categoria = {}
     for cat in categorias_seleccionadas:
         presupuesto = st.sidebar.number_input(
