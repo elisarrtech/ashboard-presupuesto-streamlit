@@ -9,16 +9,17 @@ def show_kpis(df):
     col3.metric("⚠️ Por Pagar", f"${df[df['Status'] != 'PAGADO']['Monto'].sum():,.0f}")
     st.divider()
 
+import plotly.express as px
+
 def plot_gasto_por_mes(df_filtrado):
     st.subheader("📈 Gasto total por mes")
     gasto_mes = df_filtrado.groupby("Mes")["Monto"].sum().reset_index()
     gasto_mes = gasto_mes.sort_values("Mes")
-    chart_mes = alt.Chart(gasto_mes).mark_bar().encode(
-        x=alt.X("Mes", title="Mes"),
-        y=alt.Y("Monto", title="Monto Total"),
-        tooltip=["Mes", "Monto"]
-    )
-    st.altair_chart(chart_mes, use_container_width=True)
+
+    fig = px.bar(gasto_mes, x="Mes", y="Monto", text_auto=True,
+                 title="Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
+    fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
+    st.plotly_chart(fig, use_container_width=True)
 
 def plot_gasto_por_categoria(df_filtrado):
     st.subheader("🏦 Gasto por categoría")
