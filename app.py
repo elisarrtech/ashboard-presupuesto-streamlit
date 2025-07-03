@@ -27,6 +27,9 @@ if uploaded_file:
     except Exception as e:
         st.error("❌ Error al guardar en Google Sheets.")
 
+    # --- Esto te muestra qué columnas está recibiendo realmente desde Google Sheets. ---
+    st.write("Columnas actuales:", list(df.columns))
+
 # --- LIMPIEZA Y VALIDACIÓN ---
 try:
     df = clean_and_validate_data(df)
