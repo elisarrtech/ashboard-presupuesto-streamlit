@@ -1,11 +1,12 @@
 # app.py
 import streamlit as st
 import pandas as pd
-from utils.data_loader import get_gsheet_data
+from utils.data_loader import get_gsheet_data, save_gsheet_data
 from utils.data_processor import clean_and_validate_data
 from components.sidebar import render_sidebar
 from components.visuals import show_kpis, plot_gasto_por_mes, plot_gasto_por_categoria, show_filtered_table
 
+# Configuración inicial
 st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
 st.title("📊 Dashboard de Presupuesto de Gastos")
 
@@ -21,13 +22,12 @@ uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
     try:
-        from utils.data_loader import save_gsheet_data
         save_gsheet_data(sheet, df)
         st.success("✅ Datos cargados desde CSV y guardados en Google Sheets.")
     except Exception as e:
-        st.error("❌ Error al guardar en Google Sheets.")
+        st.error(f"❌ Error al guardar en Google Sheets: {e}")
 
-    # --- Esto te muestra qué columnas está recibiendo realmente desde Google Sheets. ---
+    # Mostrar columnas actuales para depuración
     st.write("Columnas actuales:", list(df.columns))
 
 # --- LIMPIEZA Y VALIDACIÓN ---
