@@ -81,6 +81,9 @@ elif data_source == "Archivo Excel":
             except Exception as e:
                 st.error(f"❌ Error al guardar en Google Sheets: {e}")
 
+# --- FILTRO DE MESES ---
+filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
+
 # --- LIMPIEZA Y VALIDACIÓN ---
 if not df.empty:
     try:
@@ -90,10 +93,10 @@ if not df.empty:
         st.stop()
 
     # --- VISUALIZACIONES ---
-    show_kpis(df, topes_mensuales)
-    plot_gasto_por_mes(df)
-    show_monthly_topes(df, topes_mensuales)
-    plot_gasto_por_categoria(df)
+    show_kpis(df, topes_mensuales, filtro_mes)
+    plot_gasto_por_mes(df, filtro_mes)
+    show_monthly_topes(df, topes_mensuales, filtro_mes)
+    plot_gasto_por_categoria(df, filtro_mes)
     show_filtered_table(df)
     show_month_comparison(df)
     show_categoria_presupuesto(df, presupuesto_categoria={})
