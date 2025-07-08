@@ -51,7 +51,8 @@ def plot_gasto_por_categoria(df, filtro_mes=None):
 
 def show_filtered_table(df):
     st.subheader("📄 Detalle de gastos filtrados")
-    st.dataframe(df.sort_values("Fecha"))
+    columnas = [col for col in ["Fecha", "Mes_num", "Mes", "Categoría", "Banco", "Concepto", "Monto", "Status"] if col in df.columns]
+    st.dataframe(df.sort_values("Fecha")[columnas])
 
 def show_month_comparison(df):
     monthly_spending = df.groupby("Mes_num")["Monto"].sum().reset_index()
@@ -93,4 +94,3 @@ def show_categoria_presupuesto(df, presupuesto_categoria={}):
         st.warning("⚠️ No hay datos para mostrar en la comparación de presupuesto.")
 
     return df_presupuesto
-
