@@ -39,7 +39,16 @@ elif data_source == "Archivo Excel":
 # Si hay datos cargados
 if not df.empty:
     df.columns = [col.strip().capitalize() for col in df.columns]
-    df.rename(columns={"Mes": "Fecha", "Categoria": "Categoría", "Concepto": "Concepto", "Monto": "Monto", "Status": "Status"}, inplace=True)
+    df.rename(columns={
+    "Mes": "Mes",
+    "Categoria": "Categoría",
+    "Banco": "Banco",
+    "Concepto": "Concepto",
+    "Monto": "Monto",
+    "Fecha de pago": "Fecha de pago",
+    "Status": "Status"
+}, inplace=True)
+
 
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
     df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
