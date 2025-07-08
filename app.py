@@ -69,17 +69,14 @@ if not df.empty:
         format_func=lambda x: month_name[x]
     )
 
-    if filtro_mes:
-        df = df[df["Mes_num"].isin(filtro_mes)]
-
-    # Visualizaciones
+    # Visualizaciones con filtro aplicado
     show_kpis(df, topes_mensuales, filtro_mes)
-    plot_gasto_por_mes(df, filtro_mes)
-    show_monthly_topes(df, topes_mensuales, filtro_mes)
-    plot_gasto_por_categoria(df, filtro_mes)
-    show_filtered_table(df)
-    show_month_comparison(df)
-    show_categoria_presupuesto(df, presupuesto_categoria={})
+    plot_gasto_por_mes(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, filtro_mes)
+    show_monthly_topes(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, topes_mensuales, filtro_mes)
+    plot_gasto_por_categoria(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, filtro_mes)
+    show_filtered_table(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df)
+    show_month_comparison(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df)
+    show_categoria_presupuesto(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, presupuesto_categoria={})
 
 else:
     st.warning("No hay datos para mostrar.")
