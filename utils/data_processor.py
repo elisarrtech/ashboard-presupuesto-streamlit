@@ -1,5 +1,6 @@
 import pandas as pd
 from calendar import month_name
+import streamlit as st
 
 def clean_and_validate_data(df):
     # Mapeo flexible de nombres de columnas
@@ -18,6 +19,9 @@ def clean_and_validate_data(df):
     # Normalización de nombres de columnas
     df.columns = [col.strip().lower() for col in df.columns]
     df.rename(columns=column_mapping, inplace=True)
+
+    # Mostrar columnas reales para verificar
+    st.write("Columnas después del mapeo:", list(df.columns))
 
     required_columns = ["Mes", "Categoría", "Banco", "Concepto", "Monto", "Fecha de pago", "Status"]
 
