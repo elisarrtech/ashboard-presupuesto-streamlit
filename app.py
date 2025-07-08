@@ -16,11 +16,23 @@ from components.visuals import (
     plot_gasto_por_categoria,
     show_filtered_table,
     show_month_comparison,
-    show_categoria_presupuesto
+    show_categoria_presupuesto,
+    show_monthly_topes
 )
 
 # Diccionario de meses
 meses_es = {i: month_name[i] for i in range(1, 13)}
+
+# --- Topes mensuales ---
+topes_mensuales = {
+    1: 496861.12,
+    2: 534961.49,
+    3: 492482.48,
+    4: 442578.28,
+    5: 405198.44,
+    6: 416490.46,
+    7: 420000.00,
+}
 
 # --- CARGA DE DATOS ---
 data_source = st.sidebar.selectbox("🔍 Selecciona fuente de datos", ["Google Sheets", "Archivo CSV", "Archivo Excel"])
@@ -38,12 +50,11 @@ elif data_source == "Archivo CSV":
     uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
-        # Normalización de columnas
         df.columns = [col.strip().capitalize() for col in df.columns]
         column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
         df.rename(columns=column_mapping, inplace=True)
-        # Conversión segura de Monto
         df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
+        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
 
         if st.checkbox("⬆️ Guardar en Google Sheets"):
             try:
@@ -56,12 +67,11 @@ elif data_source == "Archivo Excel":
     uploaded_file = st.file_uploader("📁 Cargar archivo Excel", type=["xlsx", "xls"])
     if uploaded_file:
         df = load_excel_data(uploaded_file)
-        # Normalización de columnas
         df.columns = [col.strip().capitalize() for col in df.columns]
         column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
         df.rename(columns=column_mapping, inplace=True)
-        # Conversión segura de Monto
         df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
+        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
 
         if st.checkbox("⬆️ Guardar en Google Sheets"):
             try:
@@ -80,12 +90,13 @@ if not df.empty:
         st.stop()
 
     # --- VISUALIZACIONES ---
-    show_kpis(df)
+    show_kpis(df, topes_mensuales)
     plot_gasto_por_mes(df)
+    show_monthly_topes(df, topes_mensuales)
     plot_gasto_por_categoria(df)
     show_filtered_table(df)
-    plot_gasto_por_categoria(df)
     show_month_comparison(df)
-    show_categoria_presupuesto(df)
+    show_categoria_presupuesto(df, presupuesto_categoria={})
+
 else:
     st.warning("⚠️ No hay datos para mostrar.")
