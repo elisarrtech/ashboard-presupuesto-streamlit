@@ -11,7 +11,6 @@ from components.visuals import (
     show_month_comparison,
     show_categoria_presupuesto,
     show_monthly_topes,
-    show_nominas_comisiones,
     plot_nominas_comisiones
 )
 
@@ -26,12 +25,11 @@ pagina = st.sidebar.radio("Selecciona sección", ["📊 Presupuesto General", "�
 # --- Carga de datos ---
 data_source = st.sidebar.selectbox("Fuente de datos", ["Google Sheets", "Archivo Excel"])
 df = pd.DataFrame()
-sheet = None
 
 if data_source == "Google Sheets":
     try:
         df, sheet = get_gsheet_data()
-    except Exception as e:
+    except Exception:
         st.error("Error al conectar con Google Sheets")
         st.stop()
 elif data_source == "Archivo Excel":
@@ -48,39 +46,32 @@ if not df.empty:
         st.stop()
 
     filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: month_name[x])
+    filtro_status = st.sidebar.multiselect("🔍 Filtrar por estatus", options=df["Status"].unique())
 
     if pagina == "📊 Presupuesto General":
-        show_kpis(df, topes_mensuales, filtro_mes)
-        plot_gasto_por_mes(df, filtro_mes)
-        show_monthly_topes(df, topes_mensuales, filtro_mes)
-        plot_gasto_por_categoria(df, filtro_mes)
-        show_filtered_table(df)
-        show_month_comparison(df)
-        show_categoria_presupuesto(df, presupuesto_categoria={})
+        show_kpis(df, topes_mensuales, filtro_mes, filtro_status)
+        plot_gasto_por_mes(df, filtro_mes, filtro_status)
+        show_monthly_topes(df, topes_mensuales, filtro_mes, filtro_status)
+        plot_gasto_por_categoria(df, filtro_mes, filtro_status)
+        show_filtered_table(df, filtro_mes, filtro_status)
+        show_month_comparison(df, filtro_mes, filtro_status)
+        show_categoria_presupuesto(df)
 
-        # --- Exportaciones ---
         st.sidebar.download_button("⬇️ Exportar CSV", data=convert_df_to_csv(df), file_name="presupuesto.csv", mime="text/csv")
         st.sidebar.download_button("⬇️ Exportar Excel", data=convert_df_to_excel(df), file_name="presupuesto.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     elif pagina == "👥 Nóminas y Comisiones":
         st.header("📊 Análisis de Nóminas y Comisiones")
-
         filtro_categoria = st.multiselect("🔍 Filtrar por categoría", options=df["Categoría"].unique())
-        filtro_status = st.multiselect("🔍 Filtrar por estatus", options=df["Status"].unique())
 
         df_filtrado = df.copy()
-        if filtro_mes:
-            df_filtrado = df_filtrado[df_filtrado["Mes_num"].isin(filtro_mes)]
         if filtro_categoria:
             df_filtrado = df_filtrado[df_filtrado["Categoría"].isin(filtro_categoria)]
-        if filtro_status:
-            df_filtrado = df_filtrado[df_filtrado["Status"].isin(filtro_status)]
 
-        show_kpis(df_filtrado, topes_mensuales, filtro_mes)
-        plot_nominas_comisiones(df_filtrado)
-        show_filtered_table(df_filtrado)
+        show_kpis(df_filtrado, topes_mensuales, filtro_mes, filtro_status)
+        plot_nominas_comisiones(df_filtrado, filtro_mes, filtro_status)
+        show_filtered_table(df_filtrado, filtro_mes, filtro_status)
 
-        # --- Exportaciones ---
         st.sidebar.download_button("⬇️ Exportar CSV", data=convert_df_to_csv(df_filtrado), file_name="nominas_comisiones.csv", mime="text/csv")
         st.sidebar.download_button("⬇️ Exportar Excel", data=convert_df_to_excel(df_filtrado), file_name="nominas_comisiones.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
