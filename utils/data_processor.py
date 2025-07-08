@@ -1,4 +1,3 @@
-# utils/data_processor.py
 import streamlit as st
 import pandas as pd
 from calendar import month_name
@@ -10,7 +9,6 @@ def convert_df_to_csv(df):
 def clean_and_validate_data(df):
     required_columns = ["Fecha", "Categoría", "Concepto", "Monto", "Status"]
 
-    # Asegurar que los nombres de las columnas sean strings y sin espacios extra
     df.columns = df.columns.astype(str).str.strip()
     current_cols = list(df.columns)
 
@@ -18,8 +16,9 @@ def clean_and_validate_data(df):
         missing = [col for col in required_columns if col not in current_cols]
         raise ValueError(f"Faltan las siguientes columnas requeridas: {', '.join(missing)}. Recibido: {current_cols}")
 
-    # Convertir Fecha a tipo datetime
     df["Fecha"] = pd.to_datetime(df["Fecha"], errors="coerce")
-    df["Mes"] = df["Fecha"].dt.month.map({i: month_name[i] for i in range(1, 13)})
+    df["Monto"] = pd.to_numeric(df["Monto"], errors="coerce")
+    df["Mes_num"] = df["Fecha"].dt.month
+    df["Mes"] = df["Mes_num"].map({i: month_name[i] for i in range(1, 13)})
 
     return df
