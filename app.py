@@ -39,22 +39,22 @@ elif data_source == "Archivo Excel":
 # Si hay datos cargados
 if not df.empty:
     df.columns = [col.strip().capitalize() for col in df.columns]
-    df.rename(columns={
-    "Mes": "Mes",
-    "Categoria": "Categoría",
-    "Banco": "Banco",
-    "Concepto": "Concepto",
-    "Monto": "Monto",
-    "Fecha de pago": "Fecha de pago",
-    "Status": "Status"
-}, inplace=True)
 
+    df.rename(columns={
+        "Mes": "Mes",
+        "Categoria": "Categoría",
+        "Banco": "Banco",
+        "Concepto": "Concepto",
+        "Monto": "Monto",
+        "Fecha de pago": "Fecha de pago",
+        "Status": "Status"
+    }, inplace=True)
 
     df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-    df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+    df['Fecha de pago'] = pd.to_datetime(df['Fecha de pago'], errors='coerce')
 
     # Agregar columnas de mes
-    df["Mes_num"] = df["Fecha"].dt.month
+    df["Mes_num"] = df["Fecha de pago"].dt.month
     df["Mes"] = df["Mes_num"].map(meses_es)
 
     try:
@@ -64,11 +64,13 @@ if not df.empty:
         st.stop()
 
     filtro_mes = st.sidebar.multiselect(
-    "📅 Filtrar por mes",
-    options=list(range(1, 13)),
-    format_func=lambda x: month_name[x]
-)
+        "📅 Filtrar por mes",
+        options=list(range(1, 13)),
+        format_func=lambda x: month_name[x]
+    )
 
+    if filtro_mes:
+        df = df[df["Mes_num"].isin(filtro_mes)]
 
     # Visualizaciones
     show_kpis(df, topes_mensuales, filtro_mes)
