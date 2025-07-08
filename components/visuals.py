@@ -83,9 +83,14 @@ def show_categoria_presupuesto(df, presupuesto_categoria={}):
         })
 
     df_presupuesto = pd.DataFrame(data)
-    st.dataframe(df_presupuesto.style.applymap(
-        lambda val: "background-color:red; color:white" if val > 0 else "",
-        subset=["Diferencia"]
-    ))
+
+    if "Diferencia" in df_presupuesto.columns and not df_presupuesto.empty:
+        st.dataframe(df_presupuesto.style.applymap(
+            lambda val: "background-color:red; color:white" if isinstance(val, (int, float)) and val > 0 else "",
+            subset=["Diferencia"]
+        ))
+    else:
+        st.warning("⚠️ No hay datos para mostrar en la comparación de presupuesto.")
 
     return df_presupuesto
+
