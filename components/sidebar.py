@@ -2,11 +2,13 @@
 import streamlit as st
 from datetime import datetime
 from calendar import month_name
-import pandas as pd  # ✅ Importación añadida aquí
+import pandas as pd
 
 def render_sidebar(df, sheet):
     st.sidebar.header("➕ Agregar / ✏️ Editar Concepto")
     modo = st.sidebar.radio("Modo", ["Agregar", "Editar"])
+
+    meses_es = {i: month_name[i] for i in range(1, 13)}
 
     if modo == "Agregar":
         with st.sidebar.form("Agregar Concepto"):
@@ -18,14 +20,13 @@ def render_sidebar(df, sheet):
             submit = st.form_submit_button("Guardar")
 
         if submit:
-            from calendar import month_name
-            meses_es = {i: month_name[i] for i in range(1, 13)}
             nuevo = pd.DataFrame([{
                 "Fecha": fecha,
                 "Categoría": categoria,
                 "Concepto": concepto,
-                "Monto": monto,
+                "Monto": float(monto),
                 "Status": status,
+                "Mes_num": fecha.month,
                 "Mes": meses_es[fecha.month]
             }])
             df = pd.concat([df, nuevo], ignore_index=True)
@@ -44,13 +45,12 @@ def render_sidebar(df, sheet):
             submit = st.form_submit_button("Actualizar")
 
         if submit:
-            from calendar import month_name
-            meses_es = {i: month_name[i] for i in range(1, 13)}
             df.at[fila, "Fecha"] = fecha
             df.at[fila, "Categoría"] = categoria
             df.at[fila, "Concepto"] = concepto
-            df.at[fila, "Monto"] = monto
+            df.at[fila, "Monto"] = float(monto)
             df.at[fila, "Status"] = status
+            df.at[fila, "Mes_num"] = fecha.month
             df.at[fila, "Mes"] = meses_es[fecha.month]
             from utils.data_loader import save_gsheet_data
             save_gsheet_data(sheet, df)
