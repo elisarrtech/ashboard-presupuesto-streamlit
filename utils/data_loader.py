@@ -5,7 +5,7 @@ import json
 import streamlit as st
 
 def get_gsheet_data():
-    scope = ["https://spreadsheets.google.com/feeds ", "https://www.googleapis.com/auth/drive "]
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     creds_dict = json.loads(st.secrets["gcp_service_account"])
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
     client = gspread.authorize(creds)
