@@ -54,9 +54,12 @@ if not df.empty:
         st.error(f"Error validando datos: {e}")
         st.stop()
 
-    filtro_mes = st.sidebar.multiselect("Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
-    if filtro_mes:
-        df = df[df["Mes_num"].isin(filtro_mes)]
+    filtro_mes = st.sidebar.multiselect(
+    "📅 Filtrar por mes",
+    options=list(range(1, 13)),
+    format_func=lambda x: month_name[x]
+)
+
 
     # Visualizaciones
     show_kpis(df, topes_mensuales, filtro_mes)
