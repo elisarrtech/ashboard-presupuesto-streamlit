@@ -6,3 +6,4 @@ oauth2client
 plotly
 streamlit-authenticator
 pyyaml
+openpyxl
