@@ -11,7 +11,8 @@ from components.visuals import (
     show_month_comparison,
     show_categoria_presupuesto,
     show_monthly_topes,
-    show_nominas_comisiones
+    show_nominas_comisiones,
+    plot_nominas_comisiones
 )
 
 st.set_page_config(page_title="Presupuesto", layout="wide")
@@ -62,6 +63,23 @@ if not df.empty:
         st.sidebar.download_button("⬇️ Exportar Excel", data=convert_df_to_excel(df), file_name="presupuesto.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
     elif pagina == "👥 Nóminas y Comisiones":
-        show_nominas_comisiones(df, filtro_mes)
+        st.header("📊 Análisis de Nóminas y Comisiones")
+
+        filtro_categoria = st.multiselect("🔍 Filtrar por categoría", options=df["Categoría"].unique())
+
+        df_filtrado = df.copy()
+        if filtro_mes:
+            df_filtrado = df_filtrado[df_filtrado["Mes_num"].isin(filtro_mes)]
+        if filtro_categoria:
+            df_filtrado = df_filtrado[df_filtrado["Categoría"].isin(filtro_categoria)]
+
+        show_kpis(df_filtrado, topes_mensuales, filtro_mes)
+        plot_nominas_comisiones(df_filtrado)
+        show_filtered_table(df_filtrado)
+
+        # --- Exportaciones ---
+        st.sidebar.download_button("⬇️ Exportar CSV", data=convert_df_to_csv(df_filtrado), file_name="nominas_comisiones.csv", mime="text/csv")
+        st.sidebar.download_button("⬇️ Exportar Excel", data=convert_df_to_excel(df_filtrado), file_name="nominas_comisiones.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+
 else:
     st.warning("⚠️ No hay datos para mostrar.")
