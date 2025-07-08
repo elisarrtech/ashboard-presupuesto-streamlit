@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from calendar import month_name
 from utils.data_loader import get_gsheet_data, save_gsheet_data, load_excel_data
-from utils.data_processor import clean_and_validate_data
+from utils.data_processor import clean_and_validate_data, convert_df_to_csv
 from components.visuals import (
     show_kpis,
     plot_gasto_por_mes,
@@ -10,12 +10,12 @@ from components.visuals import (
     show_filtered_table,
     show_month_comparison,
     show_categoria_presupuesto,
-    show_monthly_topes
+    show_monthly_topes,
+    show_nominas_comisiones
 )
 
 st.set_page_config(page_title="Presupuesto", layout="wide")
 
-# Configuración inicial
 meses_es = {i: month_name[i] for i in range(1, 13)}
 topes_mensuales = {1: 496861.12, 2: 534961.49, 3: 492482.48, 4: 442578.28, 5: 405198.44, 6: 416490.46, 7: 420000.00}
 
@@ -34,49 +34,42 @@ elif data_source == "Archivo Excel":
     uploaded_file = st.file_uploader("Subir archivo Excel", type=["xlsx", "xls"])
     if uploaded_file:
         df = load_excel_data(uploaded_file)
-        df = df.loc[:, ~df.columns.duplicated()]  # Eliminar columnas duplicadas
+        df = df.loc[:, ~df.columns.duplicated()]
 
 # Si hay datos cargados
 if not df.empty:
-    df.columns = [col.strip().capitalize() for col in df.columns]
+    df = clean_and_validate_data(df)
 
-    df.rename(columns={
-        "Mes": "Mes",
-        "Categoria": "Categoría",
-        "Banco": "Banco",
-        "Concepto": "Concepto",
-        "Monto": "Monto",
-        "Fecha de pago": "Fecha de pago",
-        "Status": "Status"
-    }, inplace=True)
+    pagina = st.sidebar.radio("Selecciona sección", ["General", "Nóminas y Comisiones"])
 
-    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-    df['Fecha de pago'] = pd.to_datetime(df['Fecha de pago'], errors='coerce')
+    filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: month_name[x])
+    filtro_categoria = st.sidebar.multiselect("📂 Filtrar por categoría", options=df["Categoría"].dropna().unique())
+    filtro_banco = st.sidebar.multiselect("🏦 Filtrar por banco", options=df["Banco"].dropna().unique())
+    filtro_status = st.sidebar.multiselect("✅ Filtrar por estado", options=df["Status"].dropna().unique())
 
-    # Agregar columnas de mes
-    df["Mes_num"] = df["Fecha de pago"].dt.month
-    df["Mes"] = df["Mes_num"].map(meses_es)
+    if filtro_mes:
+        df = df[df["Mes_num"].isin(filtro_mes)]
+    if filtro_categoria:
+        df = df[df["Categoría"].isin(filtro_categoria)]
+    if filtro_banco:
+        df = df[df["Banco"].isin(filtro_banco)]
+    if filtro_status:
+        df = df[df["Status"].isin(filtro_status)]
 
-    try:
-        df = clean_and_validate_data(df)
-    except ValueError as e:
-        st.error(f"Error validando datos: {e}")
-        st.stop()
+    if pagina == "General":
+        show_kpis(df, topes_mensuales, filtro_mes)
+        plot_gasto_por_mes(df, filtro_mes)
+        show_monthly_topes(df, topes_mensuales, filtro_mes)
+        plot_gasto_por_categoria(df, filtro_mes)
+        show_filtered_table(df)
+        show_month_comparison(df)
+        show_categoria_presupuesto(df, presupuesto_categoria={})
 
-    filtro_mes = st.sidebar.multiselect(
-        "📅 Filtrar por mes",
-        options=list(range(1, 13)),
-        format_func=lambda x: month_name[x]
-    )
+        st.download_button("⬇️ Descargar CSV", convert_df_to_csv(df), file_name="presupuesto_filtrado.csv", mime="text/csv")
+        st.download_button("⬇️ Descargar Excel", convert_df_to_csv(df), file_name="presupuesto_filtrado.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
-    # Visualizaciones con filtro aplicado
-    show_kpis(df, topes_mensuales, filtro_mes)
-    plot_gasto_por_mes(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, filtro_mes)
-    show_monthly_topes(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, topes_mensuales, filtro_mes)
-    plot_gasto_por_categoria(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, filtro_mes)
-    show_filtered_table(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df)
-    show_month_comparison(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df)
-    show_categoria_presupuesto(df[df["Mes_num"].isin(filtro_mes)] if filtro_mes else df, presupuesto_categoria={})
+    elif pagina == "Nóminas y Comisiones":
+        show_nominas_comisiones(df, filtro_mes)
 
 else:
     st.warning("No hay datos para mostrar.")
