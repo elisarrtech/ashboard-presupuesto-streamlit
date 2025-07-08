@@ -1,50 +1,58 @@
-# components/visuals.py
 import streamlit as st
 import plotly.express as px
-import plotly.io as pio
 from calendar import month_name
 from datetime import datetime
 import pandas as pd
 
-# Diccionario de meses en español
 meses_es = {i: month_name[i] for i in range(1, 13)}
 
 def show_kpis(df):
-    col1, col2, col3 = st.columns(3)
+    current_month = datetime.today().month
+    df['Mes_num'] = df['Fecha'].dt.month
 
-    total = df['Monto'].sum()
+    total_gastado = df['Monto'].sum()
+    gastado_mes = df[df['Mes_num'] == current_month]['Monto'].sum()
     pagado = df[df['Status'].str.upper() == 'PAGADO']['Monto'].sum()
-    no_pagado = df[df['Status'].str.upper() != 'PAGADO']['Monto'].sum()
+    pendiente = df[df['Status'].str.upper() != 'PAGADO']['Monto'].sum()
 
-    col1.metric("💰 Total Gastado", f"${total:,.0f}")
-    col2.metric("✅ Pagado", f"${pagado:,.0f}")
-    col3.metric("⚠️ Por Pagar", f"${no_pagado:,.0f}")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("💰 Total Gastado", f"${total_gastado:,.0f}")
+    col2.metric("📅 Gastado Mes Actual", f"${gastado_mes:,.0f}")
+    col3.metric("✅ Pagado", f"${pagado:,.0f}")
+    col4.metric("⚠️ Por Pagar", f"${pendiente:,.0f}")
+
     st.divider()
 
 def plot_gasto_por_mes(df):
-    st.subheader("📈 Gasto total por mes")
     df['Mes_num'] = df['Fecha'].dt.month
     gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
     gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
-    gasto_mes = gasto_mes.sort_values("Mes_num")
 
-    fig = px.bar(gasto_mes, x="Mes", y="Monto", text_auto=True,
-                 title="Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
+    fig = px.bar(
+        gasto_mes.sort_values("Mes_num"),
+        x="Mes",
+        y="Monto",
+        text_auto=True,
+        title="📊 Gasto total por mes",
+        labels={"Monto": "Monto Total", "Mes": "Mes"}
+    )
+
     fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
-    
-    if st.button("💾 Descargar gráfico como PNG"):
-        pio.write_image(fig, "gasto_por_mes.png")
-        with open("gasto_por_mes.png", "rb") as file:
-            st.download_button(label="⬇️ Confirmar descarga", data=file, file_name="gasto_por_mes.png", mime="image/png")
-    
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_gasto_por_categoria(df):
-    st.subheader("🏦 Gasto por categoría")
     gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
 
-    fig = px.bar(gasto_cat, x="Monto", y="Categoría", orientation='h', text_auto=True,
-                 title="Gasto total por categoría", labels={"Monto": "Monto Total", "Categoría": "Categoría"})
+    fig = px.bar(
+        gasto_cat,
+        x="Monto",
+        y="Categoría",
+        orientation='h',
+        text_auto=True,
+        title="🏦 Gasto por categoría",
+        labels={"Monto": "Monto Total", "Categoría": "Categoría"}
+    )
+
     fig.update_layout(yaxis={'categoryorder': 'total ascending'})
     fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
     st.plotly_chart(fig, use_container_width=True)
@@ -54,7 +62,7 @@ def show_filtered_table(df):
     st.dataframe(df.sort_values("Fecha"))
 
 def show_month_comparison(df):
-    df["Mes_num"] = df["Fecha"].dt.month
+    df['Mes_num'] = df['Fecha'].dt.month
     monthly_spending = df.groupby("Mes_num")["Monto"].sum().reset_index()
 
     current_month = datetime.today().month
@@ -85,13 +93,8 @@ def show_categoria_presupuesto(df, presupuesto_categoria={}):
             "Diferencia": float(gasto - presupuesto)
         })
 
-    if not data:
-        st.warning("⚠️ No hay categorías coincidentes entre tus datos y el presupuesto definido.")
-        return pd.DataFrame(columns=["Categoría", "Presupuesto", "Gasto Real", "Diferencia"])
-
     df_presupuesto = pd.DataFrame(data)
 
-    # Mostrar tabla con diferencias resaltadas
     st.dataframe(df_presupuesto.style.applymap(
         lambda val: "background-color:red; color:white" if val > 0 else "",
         subset=["Diferencia"]
