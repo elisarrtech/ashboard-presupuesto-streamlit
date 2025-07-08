@@ -6,32 +6,38 @@ import pandas as pd
 
 meses_es = {i: month_name[i] for i in range(1, 13)}
 
-def show_kpis(df, topes_mensuales):
-    current_month = datetime.today().month
+def show_kpis(df, topes_mensuales, filtro_mes=None):
     df['Mes_num'] = df['Fecha'].dt.month
 
+    if filtro_mes:
+        df = df[df['Mes_num'].isin(filtro_mes)]
+
     total_gastado = df['Monto'].sum()
-    gastado_mes = df[df['Mes_num'] == current_month]['Monto'].sum()
     pagado = df[df['Status'].str.upper() == 'PAGADO']['Monto'].sum()
     pendiente = df[df['Status'].str.upper() != 'PAGADO']['Monto'].sum()
 
+    current_month = datetime.today().month
+    gasto_mes_actual = df[df['Mes_num'] == current_month]['Monto'].sum()
     tope_mes = topes_mensuales.get(current_month, 0)
-    diferencia_mes = gastado_mes - tope_mes
-    cumplimiento = (gastado_mes / tope_mes * 100) if tope_mes else 0
+    diferencia_mes = gasto_mes_actual - tope_mes
+    cumplimiento = (gasto_mes_actual / tope_mes * 100) if tope_mes else 0
 
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("💰 Total Gastado", f"${total_gastado:,.0f}")
-    col2.metric("📅 Gastado Mes Actual", f"${gastado_mes:,.0f}")
+    col2.metric("📅 Gastado Mes Actual", f"${gasto_mes_actual:,.0f}")
     col3.metric("✅ Pagado", f"${pagado:,.0f}")
     col4.metric("⚠️ Por Pagar", f"${pendiente:,.0f}")
     col5.metric("🎯 Cumplimiento Mes", f"{cumplimiento:.1f}%", delta=f"{diferencia_mes:,.0f}")
 
     st.divider()
 
-def show_monthly_topes(df, topes_mensuales):
+def show_monthly_topes(df, topes_mensuales, filtro_mes=None):
     df['Mes_num'] = df['Fecha'].dt.month
-    gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
 
+    if filtro_mes:
+        df = df[df['Mes_num'].isin(filtro_mes)]
+
+    gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
     gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
     gasto_mes['Tope'] = gasto_mes['Mes_num'].apply(lambda x: topes_mensuales.get(x, 0))
     gasto_mes['Diferencia'] = gasto_mes['Monto'] - gasto_mes['Tope']
@@ -47,8 +53,12 @@ def show_monthly_topes(df, topes_mensuales):
 
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_gasto_por_mes(df):
+def plot_gasto_por_mes(df, filtro_mes=None):
     df['Mes_num'] = df['Fecha'].dt.month
+
+    if filtro_mes:
+        df = df[df['Mes_num'].isin(filtro_mes)]
+
     gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
     gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
 
@@ -64,7 +74,12 @@ def plot_gasto_por_mes(df):
     fig.update_traces(textfont_size=12, textangle=0, textposition="outside")
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_gasto_por_categoria(df):
+def plot_gasto_por_categoria(df, filtro_mes=None):
+    df['Mes_num'] = df['Fecha'].dt.month
+
+    if filtro_mes:
+        df = df[df['Mes_num'].isin(filtro_mes)]
+
     gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
 
     fig = px.bar(
