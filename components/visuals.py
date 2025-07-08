@@ -1,5 +1,3 @@
-# ✅ visuals.py
-
 import streamlit as st
 import plotly.express as px
 from calendar import month_name
@@ -29,11 +27,11 @@ def show_kpis(df, topes_mensuales, filtro_mes=None, filtro_status=None):
     cumplimiento = (gasto_mes_actual / tope_mes * 100) if tope_mes else 0
 
     col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("💰 Total Gastado", f"${total_gastado:,.0f}")
-    col2.metric("📅 Gastado Mes Actual", f"${gasto_mes_actual:,.0f}")
-    col3.metric("✅ Pagado", f"${pagado:,.0f}")
-    col4.metric("⚠️ Por Pagar", f"${pendiente:,.0f}")
-    col5.metric("🎯 Cumplimiento Mes", f"{cumplimiento:.1f}%", delta=f"{diferencia_mes:,.0f}")
+    col1.metric("\U0001F4B0 Total Gastado", f"${total_gastado:,.0f}")
+    col2.metric("\U0001F4C5 Gastado Mes Actual", f"${gasto_mes_actual:,.0f}")
+    col3.metric("\u2705 Pagado", f"${pagado:,.0f}")
+    col4.metric("\u26A0\ufe0f Por Pagar", f"${pendiente:,.0f}")
+    col5.metric("\U0001F3AF Cumplimiento Mes", f"{cumplimiento:.1f}%", delta=f"{diferencia_mes:,.0f}")
 
 def plot_gasto_por_mes(df, filtro_mes=None, filtro_status=None):
     df = aplicar_filtros(df, filtro_mes, filtro_status)
@@ -42,7 +40,7 @@ def plot_gasto_por_mes(df, filtro_mes=None, filtro_status=None):
     gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
 
     fig = px.bar(gasto_mes.sort_values("Mes_num"), x="Mes", y="Monto", text_auto=True,
-                 title="📊 Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
+                 title="\U0001F4CA Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
     st.plotly_chart(fig, use_container_width=True)
 
 def show_monthly_topes(df, topes_mensuales, filtro_mes=None, filtro_status=None):
@@ -53,7 +51,7 @@ def show_monthly_topes(df, topes_mensuales, filtro_mes=None, filtro_status=None)
     gasto_mes['Tope'] = gasto_mes['Mes_num'].apply(lambda x: topes_mensuales.get(x, 0))
 
     fig = px.bar(gasto_mes.sort_values("Mes_num"), x="Mes", y=["Monto", "Tope"], barmode='group',
-                 title="📊 Comparativo Gasto vs. Tope mensual",
+                 title="\U0001F4CA Comparativo Gasto vs. Tope mensual",
                  labels={"value": "Monto", "Mes": "Mes", "variable": "Concepto"})
     st.plotly_chart(fig, use_container_width=True)
 
@@ -63,17 +61,19 @@ def plot_gasto_por_categoria(df, filtro_mes=None, filtro_status=None):
     gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
 
     fig = px.bar(gasto_cat, x="Monto", y="Categoría", orientation='h', text_auto=True,
-                 title="🏦 Gasto por categoría", labels={"Monto": "Monto Total", "Categoría": "Categoría"})
+                 title="\U0001F3E6 Gasto por categoría", labels={"Monto": "Monto Total", "Categoría": "Categoría"})
     st.plotly_chart(fig, use_container_width=True)
 
 def show_filtered_table(df, filtro_mes=None, filtro_status=None):
     df = aplicar_filtros(df, filtro_mes, filtro_status)
 
-    st.subheader("📄 Detalle de gastos filtrados")
-    columnas = [col for col in ["Fecha", "Mes_num", "Mes", "Categoría", "Banco", "Concepto", "Monto", "Status"] if col in df.columns]
+    st.subheader("\U0001F4C4 Detalle de gastos filtrados")
+    columnas = [col for col in ["Fecha de pago", "Mes_num", "Mes", "Categoría", "Banco", "Concepto", "Monto", "Status"] if col in df.columns]
+
     df = df.loc[:, ~df.columns.duplicated()]
     df.columns = [str(col).strip() for col in df.columns]
-    st.dataframe(df.sort_values("Fecha")[columnas])
+
+    st.dataframe(df.sort_values("Fecha de pago")[columnas])
 
 def show_month_comparison(df, filtro_mes=None, filtro_status=None):
     df = aplicar_filtros(df, filtro_mes, filtro_status)
@@ -87,9 +87,9 @@ def show_month_comparison(df, filtro_mes=None, filtro_status=None):
     last_total = monthly_spending.loc[monthly_spending["Mes_num"] == last_month, "Monto"].sum()
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("📅 Mes actual", meses_es[current_month])
-    col2.metric("💰 Gasto mes actual", f"${current_total:,.0f}", delta=f"{current_total - last_total:,.0f} vs. mes anterior")
-    col3.metric("📅 Mes anterior", meses_es[last_month])
+    col1.metric("\U0001F4C5 Mes actual", meses_es[current_month])
+    col2.metric("\U0001F4B0 Gasto mes actual", f"${current_total:,.0f}", delta=f"{current_total - last_total:,.0f} vs. mes anterior")
+    col3.metric("\U0001F4C5 Mes anterior", meses_es[last_month])
 
 def show_categoria_presupuesto(df, presupuesto_categoria={}):
     gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index()
@@ -114,7 +114,7 @@ def show_categoria_presupuesto(df, presupuesto_categoria={}):
             subset=["Diferencia"]
         ))
     else:
-        st.warning("⚠️ No hay datos para mostrar en la comparación de presupuesto.")
+        st.warning("\u26A0\ufe0f No hay datos para mostrar en la comparación de presupuesto.")
 
 def plot_nominas_comisiones(df, filtro_mes=None, filtro_status=None):
     df = aplicar_filtros(df, filtro_mes, filtro_status)
@@ -128,7 +128,7 @@ def plot_nominas_comisiones(df, filtro_mes=None, filtro_status=None):
         color="Categoría",
         barmode="group",
         text_auto=True,
-        title="📊 Nóminas y Comisiones por Mes",
+        title="\U0001F4CA Nóminas y Comisiones por Mes",
         labels={"Monto": "Monto Total", "Mes": "Mes", "Categoría": "Categoría"}
     )
 
