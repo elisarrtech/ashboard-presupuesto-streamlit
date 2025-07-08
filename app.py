@@ -21,6 +21,13 @@ from components.visuals import (
 )
 
 # Diccionario de meses
+df_deudas = pd.DataFrame({
+    "DEUDAS": ["RENTA", "HONORARIOS CONTADOR", "LENIN"],
+    "MONTO": [300000.00, 200000.00, 55000.00],
+    "IVA": [48000.00, 32000.00, 8800.00],
+    "TOTAL": [348000.00, 232000.00, 63800.00]
+})
+
 meses_es = {i: month_name[i] for i in range(1, 13)}
 
 # --- Topes mensuales ---
@@ -34,72 +41,105 @@ topes_mensuales = {
     7: 420000.00,
 }
 
-# --- CARGA DE DATOS ---
-data_source = st.sidebar.selectbox("🔍 Selecciona fuente de datos", ["Google Sheets", "Archivo CSV", "Archivo Excel"])
+# --- FILTRO DE PÁGINAS ---
+pagina = st.sidebar.radio("Selecciona sección", ["Presupuesto", "Deudas", "Nóminas y Comisiones"])
 
-df = pd.DataFrame()
-sheet = None
+if pagina == "Deudas":
+    st.header("💸 Deudas")
+    edited_df = st.experimental_data_editor(df_deudas, num_rows="dynamic")
+    st.write("### Estado de deudas actualizado:")
+    st.dataframe(edited_df)
 
-if data_source == "Google Sheets":
-    try:
-        df, sheet = get_gsheet_data()
-    except Exception as e:
-        st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
-        st.stop()
-elif data_source == "Archivo CSV":
-    uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
-        df.columns = [col.strip().capitalize() for col in df.columns]
-        column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
-        df.rename(columns=column_mapping, inplace=True)
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+elif pagina == "Nóminas y Comisiones":
+    st.header("💼 Nóminas y Comisiones")
 
-        if st.checkbox("⬆️ Guardar en Google Sheets"):
-            try:
-                df_gs, sheet = get_gsheet_data()
-                save_gsheet_data(sheet, df)
-                st.success("✅ Datos cargados desde CSV y guardados en Google Sheets.")
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
-elif data_source == "Archivo Excel":
-    uploaded_file = st.file_uploader("📁 Cargar archivo Excel", type=["xlsx", "xls"])
-    if uploaded_file:
-        df = load_excel_data(uploaded_file)
-        df.columns = [col.strip().capitalize() for col in df.columns]
-        column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
-        df.rename(columns=column_mapping, inplace=True)
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+    # --- CARGA DE DATOS ---
+    df, sheet = get_gsheet_data()
 
-        if st.checkbox("⬆️ Guardar en Google Sheets"):
-            try:
-                df_gs, sheet = get_gsheet_data()
-                save_gsheet_data(sheet, df)
-                st.success("✅ Datos cargados desde Excel y guardados en Google Sheets.")
-            except Exception as e:
-                st.error(f"❌ Error al guardar en Google Sheets: {e}")
-
-# --- FILTRO DE MESES ---
-filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
-
-# --- LIMPIEZA Y VALIDACIÓN ---
-if not df.empty:
-    try:
+    if not df.empty:
         df = clean_and_validate_data(df)
-    except ValueError as e:
-        st.error(f"❌ Error en la validación de datos: {e}")
-        st.stop()
+        df_nominas = df[df['Categoría'].str.contains("nómina|comisión", case=False, na=False)]
 
-    # --- VISUALIZACIONES ---
-    show_kpis(df, topes_mensuales, filtro_mes)
-    plot_gasto_por_mes(df, filtro_mes)
-    show_monthly_topes(df, topes_mensuales, filtro_mes)
-    plot_gasto_por_categoria(df, filtro_mes)
-    show_filtered_table(df)
-    show_month_comparison(df)
-    show_categoria_presupuesto(df, presupuesto_categoria={})
+        filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
+
+        show_kpis(df_nominas, topes_mensuales, filtro_mes)
+        plot_gasto_por_mes(df_nominas, filtro_mes)
+        show_monthly_topes(df_nominas, topes_mensuales, filtro_mes)
+        plot_gasto_por_categoria(df_nominas, filtro_mes)
+        show_filtered_table(df_nominas)
+        show_month_comparison(df_nominas)
+        show_categoria_presupuesto(df_nominas, presupuesto_categoria={})
+
+    else:
+        st.warning("⚠️ No hay datos para mostrar.")
 
 else:
-    st.warning("⚠️ No hay datos para mostrar.")
+    # --- CARGA DE DATOS ---
+    data_source = st.sidebar.selectbox("🔍 Selecciona fuente de datos", ["Google Sheets", "Archivo CSV", "Archivo Excel"])
+
+    df = pd.DataFrame()
+    sheet = None
+
+    if data_source == "Google Sheets":
+        try:
+            df, sheet = get_gsheet_data()
+        except Exception as e:
+            st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
+            st.stop()
+    elif data_source == "Archivo CSV":
+        uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
+        if uploaded_file:
+            df = pd.read_csv(uploaded_file)
+            df.columns = [col.strip().capitalize() for col in df.columns]
+            column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
+            df.rename(columns=column_mapping, inplace=True)
+            df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
+            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+
+            if st.checkbox("⬆️ Guardar en Google Sheets"):
+                try:
+                    df_gs, sheet = get_gsheet_data()
+                    save_gsheet_data(sheet, df)
+                    st.success("✅ Datos cargados desde CSV y guardados en Google Sheets.")
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+    elif data_source == "Archivo Excel":
+        uploaded_file = st.file_uploader("📁 Cargar archivo Excel", type=["xlsx", "xls"])
+        if uploaded_file:
+            df = load_excel_data(uploaded_file)
+            df.columns = [col.strip().capitalize() for col in df.columns]
+            column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
+            df.rename(columns=column_mapping, inplace=True)
+            df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
+            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+
+            if st.checkbox("⬆️ Guardar en Google Sheets"):
+                try:
+                    df_gs, sheet = get_gsheet_data()
+                    save_gsheet_data(sheet, df)
+                    st.success("✅ Datos cargados desde Excel y guardados en Google Sheets.")
+                except Exception as e:
+                    st.error(f"❌ Error al guardar en Google Sheets: {e}")
+
+    # --- FILTRO DE MESES ---
+    filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
+
+    # --- LIMPIEZA Y VALIDACIÓN ---
+    if not df.empty:
+        try:
+            df = clean_and_validate_data(df)
+        except ValueError as e:
+            st.error(f"❌ Error en la validación de datos: {e}")
+            st.stop()
+
+        # --- VISUALIZACIONES ---
+        show_kpis(df, topes_mensuales, filtro_mes)
+        plot_gasto_por_mes(df, filtro_mes)
+        show_monthly_topes(df, topes_mensuales, filtro_mes)
+        plot_gasto_por_categoria(df, filtro_mes)
+        show_filtered_table(df)
+        show_month_comparison(df)
+        show_categoria_presupuesto(df, presupuesto_categoria={})
+
+    else:
+        st.warning("⚠️ No hay datos para mostrar.")
