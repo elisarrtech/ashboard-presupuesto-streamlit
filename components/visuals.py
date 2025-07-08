@@ -38,6 +38,17 @@ def plot_gasto_por_mes(df, filtro_mes=None):
                  title="📊 Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
     st.plotly_chart(fig, use_container_width=True)
 
+def show_nominas_comisiones(df, filtro_mes=None):
+    df_nc = df[df['Categoría'].str.contains("NOMINAS|COMISIONES", case=False, na=False)]
+    if filtro_mes:
+        df_nc = df_nc[df_nc['Mes_num'].isin(filtro_mes)]
+
+    st.subheader("💼 Nóminas y Comisiones")
+    show_kpis(df_nc, {}, filtro_mes)
+    plot_gasto_por_mes(df_nc, filtro_mes)
+    plot_gasto_por_categoria(df_nc, filtro_mes)
+    show_filtered_table(df_nc)
+
 def show_monthly_topes(df, topes_mensuales, filtro_mes=None):
     if filtro_mes:
         df = df[df['Mes_num'].isin(filtro_mes)]
