@@ -53,7 +53,6 @@ if pagina == "Deudas":
 elif pagina == "Nóminas y Comisiones":
     st.header("💼 Nóminas y Comisiones")
 
-    # --- CARGA DE DATOS ---
     df, sheet = get_gsheet_data()
 
     if not df.empty:
@@ -61,6 +60,9 @@ elif pagina == "Nóminas y Comisiones":
         df_nominas = df[df['Categoría'].str.contains("nómina|comisión", case=False, na=False)]
 
         filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
+
+        if filtro_mes:
+            df_nominas = df_nominas[df_nominas["Mes_num"].isin(filtro_mes)]
 
         show_kpis(df_nominas, topes_mensuales, filtro_mes)
         plot_gasto_por_mes(df_nominas, filtro_mes)
@@ -74,7 +76,6 @@ elif pagina == "Nóminas y Comisiones":
         st.warning("⚠️ No hay datos para mostrar.")
 
 else:
-    # --- CARGA DE DATOS ---
     data_source = st.sidebar.selectbox("🔍 Selecciona fuente de datos", ["Google Sheets", "Archivo CSV", "Archivo Excel"])
 
     df = pd.DataFrame()
@@ -121,10 +122,8 @@ else:
                 except Exception as e:
                     st.error(f"❌ Error al guardar en Google Sheets: {e}")
 
-    # --- FILTRO DE MESES ---
     filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
 
-    # --- LIMPIEZA Y VALIDACIÓN ---
     if not df.empty:
         try:
             df = clean_and_validate_data(df)
@@ -132,7 +131,9 @@ else:
             st.error(f"❌ Error en la validación de datos: {e}")
             st.stop()
 
-        # --- VISUALIZACIONES ---
+        if filtro_mes:
+            df = df[df["Mes_num"].isin(filtro_mes)]
+
         show_kpis(df, topes_mensuales, filtro_mes)
         plot_gasto_por_mes(df, filtro_mes)
         show_monthly_topes(df, topes_mensuales, filtro_mes)
