@@ -17,3 +17,13 @@ def get_gsheet_data():
 def save_gsheet_data(sheet, df):
     sheet.clear()
     sheet.update([list(map(str, df.columns))] + df.astype(str).values.tolist())
+
+
+def load_excel_data(file):
+    try:
+        df = pd.read_excel(file)
+        st.success("✅ Datos cargados correctamente desde Excel.")
+        return df
+    except Exception as e:
+        st.error(f"❌ Error al cargar el archivo Excel: {e}")
+        return pd.DataFrame()
