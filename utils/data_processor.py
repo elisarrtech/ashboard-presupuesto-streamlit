@@ -2,9 +2,24 @@ import pandas as pd
 from calendar import month_name
 
 def clean_and_validate_data(df):
-    required_columns = ["Mes", "Categoría", "Banco", "Concepto", "Monto", "Fecha de pago", "Status"]
+    # Mapeo flexible de nombres de columnas
+    column_mapping = {
+        "mes": "Mes",
+        "categoría": "Categoría",
+        "categoria": "Categoría",
+        "banco": "Banco",
+        "concepto": "Concepto",
+        "monto": "Monto",
+        "fecha de pago": "Fecha de pago",
+        "fecha_pago": "Fecha de pago",
+        "status": "Status"
+    }
 
-    df.columns = df.columns.astype(str).str.strip()
+    # Normalización de nombres de columnas
+    df.columns = [col.strip().lower() for col in df.columns]
+    df.rename(columns=column_mapping, inplace=True)
+
+    required_columns = ["Mes", "Categoría", "Banco", "Concepto", "Monto", "Fecha de pago", "Status"]
 
     missing_cols = [col for col in required_columns if col not in df.columns]
     if missing_cols:
@@ -28,5 +43,4 @@ def convert_df_to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df.to_excel(writer, index=False, sheet_name='Presupuesto')
-    processed_data = output.getvalue()
-    return processed_data
+    return output.getvalue()
