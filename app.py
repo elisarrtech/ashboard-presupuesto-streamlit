@@ -38,6 +38,11 @@ elif data_source == "Archivo CSV":
     uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
+        # Normalización de columnas
+        df.columns = [col.strip().capitalize() for col in df.columns]
+        column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
+        df.rename(columns=column_mapping, inplace=True)
+
         if st.checkbox("⬆️ Guardar en Google Sheets"):
             try:
                 df_gs, sheet = get_gsheet_data()
@@ -49,6 +54,11 @@ elif data_source == "Archivo Excel":
     uploaded_file = st.file_uploader("📁 Cargar archivo Excel", type=["xlsx", "xls"])
     if uploaded_file:
         df = load_excel_data(uploaded_file)
+        # Normalización de columnas
+        df.columns = [col.strip().capitalize() for col in df.columns]
+        column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
+        df.rename(columns=column_mapping, inplace=True)
+
         if st.checkbox("⬆️ Guardar en Google Sheets"):
             try:
                 df_gs, sheet = get_gsheet_data()
