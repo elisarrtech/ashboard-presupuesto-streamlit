@@ -52,6 +52,13 @@ def plot_gasto_por_categoria(df, filtro_mes=None):
 def show_filtered_table(df):
     st.subheader("📄 Detalle de gastos filtrados")
     columnas = [col for col in ["Fecha", "Mes_num", "Mes", "Categoría", "Banco", "Concepto", "Monto", "Status"] if col in df.columns]
+
+    # Eliminar columnas duplicadas
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    # Forzar que las columnas tengan nombres como strings
+    df.columns = [str(col).strip() for col in df.columns]
+
     st.dataframe(df.sort_values("Fecha")[columnas])
 
 def show_month_comparison(df):
