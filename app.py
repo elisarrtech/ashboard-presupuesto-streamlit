@@ -37,17 +37,15 @@ if data_source == "Google Sheets":
 elif data_source == "Archivo CSV":
     uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
     if uploaded_file:
-    df = load_excel_data(uploaded_file)
-    # Normalización de columnas
-    df.columns = [col.strip().capitalize() for col in df.columns]
-    column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
-    df.rename(columns=column_mapping, inplace=True)
+        df = pd.read_csv(uploaded_file)
+        # Normalización de columnas
+        df.columns = [col.strip().capitalize() for col in df.columns]
+        column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
+        df.rename(columns=column_mapping, inplace=True)
+        # Conversión segura de Monto
+        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
 
-    # Conversión segura de Monto
-    df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-
-    if st.checkbox("⬆️ Guardar en Google Sheets"):
-
+        if st.checkbox("⬆️ Guardar en Google Sheets"):
             try:
                 df_gs, sheet = get_gsheet_data()
                 save_gsheet_data(sheet, df)
@@ -62,6 +60,8 @@ elif data_source == "Archivo Excel":
         df.columns = [col.strip().capitalize() for col in df.columns]
         column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
         df.rename(columns=column_mapping, inplace=True)
+        # Conversión segura de Monto
+        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
 
         if st.checkbox("⬆️ Guardar en Google Sheets"):
             try:
