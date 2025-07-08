@@ -1,123 +1,70 @@
-# app.py
 import streamlit as st
-import streamlit_authenticator as stauth
-from calendar import month_name
 import pandas as pd
 
-# --- CONFIGURACIÓN INICIAL ---
-st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
-st.title("📊 Dashboard de Presupuesto de Gastos")
-
-# Importaciones desde utils y components
-from utils.data_loader import get_gsheet_data, save_gsheet_data
-from utils.data_processor import clean_and_validate_data, convert_df_to_csv
-from components.visuals import (
-    show_kpis,
-    plot_gasto_por_mes,
-    plot_gasto_por_categoria,
-    show_filtered_table,
-    show_month_comparison,
-    show_categoria_presupuesto
-)
-
-# Diccionario de meses
-meses_es = {i: month_name[i] for i in range(1, 13)}
-
-# --- CARGA DE DATOS ---
-try:
-    df, sheet = get_gsheet_data()
-except Exception as e:
-    st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
-    st.stop()
-
-# --- CARGA MANUAL OPCIONAL ---
-uploaded_file = st.file_uploader("📁 Cargar archivo CSV (opcional)", type="csv")
+# Cargar archivo Excel
+uploaded_file = st.file_uploader("Carga tu archivo Excel", type=["xlsx", "xls"])
 if uploaded_file:
-    df = pd.read_csv(uploaded_file)
-    try:
-        save_gsheet_data(sheet, df)
-        st.success("✅ Datos cargados desde CSV y guardados en Google Sheets.")
-    except Exception as e:
-        st.error(f"❌ Error al guardar en Google Sheets: {e}")
+    df = pd.read_excel(uploaded_file)
+    
+    # Normalizar nombres de columnas (opcional)
+    df.columns = [col.strip().upper() for col in df.columns]
+    
+    st.title("Dashboard de Presupuesto")
+    st.markdown("### Vista General de la Tabla")
 
-    # Mostrar columnas actuales para depuración
-    st.write("Columnas actuales:", list(df.columns))
+    # Filtros
+    col1, col2, col3, col4 = st.columns(4)
+    meses = ['Todos'] + sorted(df['MES'].unique())
+    categorias = ['Todas'] + sorted(df['CATEGORIA'].unique())
+    status_options = ['Todos'] + sorted(df['STATUS'].unique())
+    
+    mes_sel = col1.selectbox("Mes", meses)
+    cat_sel = col2.selectbox("Categoría", categorias)
+    status_sel = col3.selectbox("Status", status_options)
+    buscar = col4.text_input("Buscar concepto...")
 
-# --- LIMPIEZA Y VALIDACIÓN ---
-try:
-    df = clean_and_validate_data(df)
-except ValueError as ve:
-    st.error(str(ve))
-    st.stop()
+    filtered_df = df.copy()
+    if mes_sel != 'Todos':
+        filtered_df = filtered_df[filtered_df['MES'] == mes_sel]
+    if cat_sel != 'Todas':
+        filtered_df = filtered_df[filtered_df['CATEGORIA'] == cat_sel]
+    if status_sel != 'Todos':
+        filtered_df = filtered_df[filtered_df['STATUS'] == status_sel]
+    if buscar:
+        filtered_df = filtered_df[filtered_df['CONCEPTO'].str.contains(buscar, case=False, na=False)]
+    
+    st.dataframe(filtered_df, use_container_width=True)
 
-# --- FILTROS ---
-meses = list(meses_es.values())
-categorias = df["Categoría"].dropna().unique()
-colf1, colf2 = st.columns(2)
-mes_sel = colf1.multiselect("📅 Filtrar por mes", meses, default=meses)
-cat_sel = colf2.multiselect("🏦 Filtrar por categoría", sorted(categorias), default=categorias)
+    # KPIs
+    st.markdown("### Indicadores Clave")
+    total_pagado = df[df['STATUS'] == 'PAGADO']['MONTO'].sum()
+    total_no_pagado = df[df['STATUS'] == 'NO PAGADO']['MONTO'].sum()
+    total_deuda = df[df['MONTO'] < 0]['MONTO'].sum()
+    total = df['MONTO'].sum()
 
-df_filtrado = df[df["Mes"].isin(mes_sel) & df["Categoría"].isin(cat_sel)]
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    kpi1.metric("Total Pagado", f"${total_pagado:,.2f}")
+    kpi2.metric("Total NO Pagado", f"${total_no_pagado:,.2f}")
+    kpi3.metric("Deuda Acumulada", f"${total_deuda:,.2f}")
+    kpi4.metric("Total General", f"${total:,.2f}")
 
-# --- EDICIÓN DIRECTA CON DATA_EDITOR ---
-st.subheader("✏️ Edita tus datos")
-edited_df = st.data_editor(df_filtrado, num_rows="dynamic", use_container_width=True)
-
-if st.button("💾 Guardar cambios en Google Sheets"):
-    save_gsheet_data(sheet, edited_df)
-    st.success("✅ Datos editados guardados correctamente.")
-
-# --- DESCARGA DE DATOS FILTRADOS ---
-st.subheader("⬇️ Descargar datos filtrados")
-csv = convert_df_to_csv(edited_df)
-st.download_button(
-    label="📥 Descargar CSV",
-    data=csv,
-    file_name="datos_presupuesto_filtrados.csv",
-    mime="text/csv"
-)
-
-# --- SELECCIÓN DINÁMICA DE CATEGORÍAS Y PRESUPUESTO ---
-st.sidebar.subheader("🎯 Selecciona categorías para comparar")
-
-categorias_unicas = edited_df["Categoría"].dropna().unique()
-
-categorias_seleccionadas = st.sidebar.multiselect(
-    "Categorías disponibles", 
-    sorted(categorias_unicas), 
-    default=sorted(categorias_unicas)
-)
-
-presupuesto_categoria = {}
-for cat in categorias_seleccionadas:
-    presupuesto = st.sidebar.number_input(
-        f"Presupuesto para {cat}", 
-        min_value=0.0, 
-        value=1000.0, 
-        key=f"pres_{cat}"
+    # Gráficas
+    import plotly.express as px
+    st.markdown("### Distribución de Gastos por Categoría")
+    cat_fig = px.bar(
+        df.groupby('CATEGORIA')['MONTO'].sum().reset_index(),
+        x='CATEGORIA', y='MONTO', color='CATEGORIA', title="Gasto por Categoría"
     )
-    presupuesto_categoria[cat] = presupuesto
+    st.plotly_chart(cat_fig, use_container_width=True)
 
-# --- COMPARACIÓN MENSUAL ---
-show_month_comparison(df_filtrado)
+    st.markdown("### Evolución Mensual")
+    mes_fig = px.line(
+        df.groupby('MES')['MONTO'].sum().reset_index(),
+        x='MES', y='MONTO', markers=True, title="Evolución de Monto Mensual"
+    )
+    st.plotly_chart(mes_fig, use_container_width=True)
 
-# --- KPIs ---
-show_kpis(df)
-
-# --- GRÁFICOS Y TABLA FINAL ---
-plot_gasto_por_mes(df_filtrado)
-plot_gasto_por_categoria(df_filtrado)
-show_filtered_table(df_filtrado)
-
-# --- PRESUPUESTO POR CATEGORÍA ---
-df_presupuesto = show_categoria_presupuesto(df_filtrado, presupuesto_categoria)
-
-# --- ALERTAS ---
-st.subheader("⚠️ Alertas de Presupuesto Excedido")
-alertas = df_presupuesto[df_presupuesto["Diferencia"] > 0]
-
-if not alertas.empty:
-    for _, row in alertas.iterrows():
-        st.error(f"🔴 Categoría '{row['Categoría']}' excedió el presupuesto en ${row['Diferencia']:,.0f}")
+    st.markdown("### Detalles de Deudas Pendientes")
+    st.dataframe(df[(df['MONTO'] < 0) | (df['STATUS'] == 'NO PAGADO')], use_container_width=True)
 else:
-    st.success("✅ Todas las categorías están dentro del presupuesto.")
+    st.info("Por favor, sube tu archivo de Excel para comenzar.")
