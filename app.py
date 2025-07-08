@@ -87,17 +87,31 @@ else:
         except Exception as e:
             st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
             st.stop()
-    elif data_source == "Archivo CSV":
-        uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
-        if uploaded_file:
-            df = pd.read_csv(uploaded_file)
-            df.columns = [col.strip().capitalize() for col in df.columns]
-            column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
-            df.rename(columns=column_mapping, inplace=True)
-            df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+    elif data_source == "Archivo Excel":
+    uploaded_file = st.file_uploader("📁 Cargar archivo Excel", type=["xlsx", "xls"])
+    if uploaded_file:
+        df = load_excel_data(uploaded_file)
 
-            if st.checkbox("⬆️ Guardar en Google Sheets"):
+        # ✅ Eliminar columnas duplicadas
+        df = df.loc[:, ~df.columns.duplicated()]
+
+        # Normalización de columnas
+        df.columns = [col.strip().capitalize() for col in df.columns]
+        column_mapping = {'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}
+        df.rename(columns=column_mapping, inplace=True)
+
+        # Conversión segura de Monto y Fecha
+        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
+        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+
+        if st.checkbox("⬆️ Guardar en Google Sheets"):
+            try:
+                df_gs, sheet = get_gsheet_data()
+                save_gsheet_data(sheet, df)
+                st.success("✅ Datos cargados desde Excel y guardados en Google Sheets.")
+            except Exception as e:
+                st.error(f"❌ Error al guardar en Google Sheets: {e}")
+
                 try:
                     df_gs, sheet = get_gsheet_data()
                     save_gsheet_data(sheet, df)
