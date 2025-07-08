@@ -7,9 +7,6 @@ import pandas as pd
 meses_es = {i: month_name[i] for i in range(1, 13)}
 
 def show_kpis(df, topes_mensuales, filtro_mes=None):
-    if filtro_mes:
-        df = df[df['Mes_num'].isin(filtro_mes)]
-
     total_gastado = df['Monto'].sum()
     pagado = df[df['Status'].str.upper() == 'PAGADO']['Monto'].sum()
     pendiente = df[df['Status'].str.upper() != 'PAGADO']['Monto'].sum()
@@ -28,9 +25,6 @@ def show_kpis(df, topes_mensuales, filtro_mes=None):
     col5.metric("🎯 Cumplimiento Mes", f"{cumplimiento:.1f}%", delta=f"{diferencia_mes:,.0f}")
 
 def plot_gasto_por_mes(df, filtro_mes=None):
-    if filtro_mes:
-        df = df[df['Mes_num'].isin(filtro_mes)]
-
     gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
     gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
 
@@ -39,9 +33,6 @@ def plot_gasto_por_mes(df, filtro_mes=None):
     st.plotly_chart(fig, use_container_width=True)
 
 def show_monthly_topes(df, topes_mensuales, filtro_mes=None):
-    if filtro_mes:
-        df = df[df['Mes_num'].isin(filtro_mes)]
-
     gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
     gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
     gasto_mes['Tope'] = gasto_mes['Mes_num'].apply(lambda x: topes_mensuales.get(x, 0))
@@ -52,9 +43,6 @@ def show_monthly_topes(df, topes_mensuales, filtro_mes=None):
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_gasto_por_categoria(df, filtro_mes=None):
-    if filtro_mes:
-        df = df[df['Mes_num'].isin(filtro_mes)]
-
     gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
 
     fig = px.bar(gasto_cat, x="Monto", y="Categoría", orientation='h', text_auto=True,
