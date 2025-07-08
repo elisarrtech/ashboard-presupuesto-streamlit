@@ -9,8 +9,12 @@ def clean_and_validate_data(df):
     required_columns = ["Mes", "Categoría", "Banco", "Concepto", "Monto", "Fecha de pago", "Status"]
 
     df.columns = df.columns.astype(str).str.strip()
-    current_cols = list(df.columns)
 
+    # Renombrar "Fecha" a "Fecha de pago" si es necesario
+    if "Fecha" in df.columns and "Fecha de pago" not in df.columns:
+        df.rename(columns={"Fecha": "Fecha de pago"}, inplace=True)
+
+    current_cols = list(df.columns)
     missing_cols = [col for col in required_columns if col not in current_cols]
     if missing_cols:
         raise ValueError(f"Faltan columnas requeridas: {', '.join(missing_cols)}. Columnas actuales: {current_cols}")
