@@ -42,13 +42,36 @@ topes_mensuales = {
 }
 
 # --- FILTRO DE PÁGINAS ---
-pagina = st.sidebar.radio("Selecciona sección", ["Presupuesto", "Deudas"])
+pagina = st.sidebar.radio("Selecciona sección", ["Presupuesto", "Deudas", "Nóminas y Comisiones"])
 
 if pagina == "Deudas":
     st.header("💸 Deudas")
     edited_df = st.experimental_data_editor(df_deudas, num_rows="dynamic")
     st.write("### Estado de deudas actualizado:")
     st.dataframe(edited_df)
+
+elif pagina == "Nóminas y Comisiones":
+    st.header("💼 Nóminas y Comisiones")
+
+    # --- CARGA DE DATOS ---
+    df, sheet = get_gsheet_data()
+
+    if not df.empty:
+        df = clean_and_validate_data(df)
+        df_nominas = df[df['Categoría'].str.contains("nómina|comisión", case=False, na=False)]
+
+        filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
+
+        show_kpis(df_nominas, topes_mensuales, filtro_mes)
+        plot_gasto_por_mes(df_nominas, filtro_mes)
+        show_monthly_topes(df_nominas, topes_mensuales, filtro_mes)
+        plot_gasto_por_categoria(df_nominas, filtro_mes)
+        show_filtered_table(df_nominas)
+        show_month_comparison(df_nominas)
+        show_categoria_presupuesto(df_nominas, presupuesto_categoria={})
+
+    else:
+        st.warning("⚠️ No hay datos para mostrar.")
 
 else:
     # --- CARGA DE DATOS ---
