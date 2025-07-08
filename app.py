@@ -1,117 +1,103 @@
 import streamlit as st
+import plotly.express as px
 from calendar import month_name
+from datetime import datetime
 import pandas as pd
 
-# --- CONFIGURACIÓN INICIAL ---
-st.set_page_config(page_title="📊 Dashboard de Presupuesto", layout="wide")
-st.title("📊 Dashboard de Presupuesto de Gastos")
-
-# Importaciones desde utils y components
-from utils.data_loader import get_gsheet_data, save_gsheet_data, load_excel_data
-from utils.data_processor import clean_and_validate_data
-from components.visuals import (
-    show_kpis,
-    plot_gasto_por_mes,
-    plot_gasto_por_categoria,
-    show_filtered_table,
-    show_month_comparison,
-    show_categoria_presupuesto,
-    show_monthly_topes
-)
-
-# --- Datos iniciales ---
 meses_es = {i: month_name[i] for i in range(1, 13)}
 
-topes_mensuales = {
-    1: 496861.12, 2: 534961.49, 3: 492482.48, 4: 442578.28,
-    5: 405198.44, 6: 416490.46, 7: 420000.00,
-}
+def show_kpis(df, topes_mensuales, filtro_mes=None):
+    total_gastado = df['Monto'].sum()
+    pagado = df[df['Status'].str.upper() == 'PAGADO']['Monto'].sum()
+    pendiente = df[df['Status'].str.upper() != 'PAGADO']['Monto'].sum()
 
-df_deudas = pd.DataFrame({
-    "DEUDAS": ["RENTA", "HONORARIOS CONTADOR", "LENIN"],
-    "MONTO": [300000.00, 200000.00, 55000.00],
-    "IVA": [48000.00, 32000.00, 8800.00],
-    "TOTAL": [348000.00, 232000.00, 63800.00]
-})
+    current_month = datetime.today().month
+    gasto_mes_actual = df[df['Mes_num'] == current_month]['Monto'].sum()
+    tope_mes = topes_mensuales.get(current_month, 0)
+    diferencia_mes = gasto_mes_actual - tope_mes
+    cumplimiento = (gasto_mes_actual / tope_mes * 100) if tope_mes else 0
 
-# --- Menú lateral ---
-pagina = st.sidebar.radio("Selecciona sección", ["Presupuesto", "Deudas", "Nóminas y Comisiones"])
+    col1, col2, col3, col4, col5 = st.columns(5)
+    col1.metric("💰 Total Gastado", f"${total_gastado:,.0f}")
+    col2.metric("📅 Gastado Mes Actual", f"${gasto_mes_actual:,.0f}")
+    col3.metric("✅ Pagado", f"${pagado:,.0f}")
+    col4.metric("⚠️ Por Pagar", f"${pendiente:,.0f}")
+    col5.metric("🎯 Cumplimiento Mes", f"{cumplimiento:.1f}%", delta=f"{diferencia_mes:,.0f}")
 
-# --- Pestaña Deudas ---
-if pagina == "Deudas":
-    st.header("💸 Deudas")
-    edited_df = st.experimental_data_editor(df_deudas, num_rows="dynamic")
-    st.write("### Estado de deudas actualizado:")
-    st.dataframe(edited_df)
+def plot_gasto_por_mes(df, filtro_mes=None):
+    gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
+    gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
 
-# --- Pestaña Nóminas ---
-elif pagina == "Nóminas y Comisiones":
-    st.header("💼 Nóminas y Comisiones")
-    df, sheet = get_gsheet_data()
+    fig = px.bar(gasto_mes.sort_values("Mes_num"), x="Mes", y="Monto", text_auto=True,
+                 title="📊 Gasto total por mes", labels={"Monto": "Monto Total", "Mes": "Mes"})
+    st.plotly_chart(fig, use_container_width=True)
 
-    if not df.empty:
-        df = clean_and_validate_data(df)
-        df_nominas = df[df['Categoría'].str.contains("nómina|comisión", case=False, na=False)]
-        filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
-        if filtro_mes:
-            df_nominas = df_nominas[df_nominas["Mes_num"].isin(filtro_mes)]
+def show_monthly_topes(df, topes_mensuales, filtro_mes=None):
+    gasto_mes = df.groupby("Mes_num")["Monto"].sum().reset_index()
+    gasto_mes['Mes'] = gasto_mes['Mes_num'].apply(lambda x: meses_es.get(x, ""))
+    gasto_mes['Tope'] = gasto_mes['Mes_num'].apply(lambda x: topes_mensuales.get(x, 0))
 
-        show_kpis(df_nominas, topes_mensuales, filtro_mes)
-        plot_gasto_por_mes(df_nominas, filtro_mes)
-        show_monthly_topes(df_nominas, topes_mensuales, filtro_mes)
-        plot_gasto_por_categoria(df_nominas, filtro_mes)
-        show_filtered_table(df_nominas)
-        show_month_comparison(df_nominas)
-        show_categoria_presupuesto(df_nominas, presupuesto_categoria={})
+    fig = px.bar(gasto_mes.sort_values("Mes_num"), x="Mes", y=["Monto", "Tope"], barmode='group',
+                 title="📊 Comparativo Gasto vs. Tope mensual",
+                 labels={"value": "Monto", "Mes": "Mes", "variable": "Concepto"})
+    st.plotly_chart(fig, use_container_width=True)
+
+def plot_gasto_por_categoria(df, filtro_mes=None):
+    gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index().sort_values("Monto", ascending=False)
+
+    fig = px.bar(gasto_cat, x="Monto", y="Categoría", orientation='h', text_auto=True,
+                 title="🏦 Gasto por categoría", labels={"Monto": "Monto Total", "Categoría": "Categoría"})
+    st.plotly_chart(fig, use_container_width=True)
+
+def show_filtered_table(df):
+    st.subheader("📄 Detalle de gastos filtrados")
+    columnas = [col for col in ["Fecha", "Mes_num", "Mes", "Categoría", "Banco", "Concepto", "Monto", "Status"] if col in df.columns]
+
+    # Eliminar columnas duplicadas
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    # Forzar que las columnas tengan nombres como strings
+    df.columns = [str(col).strip() for col in df.columns]
+
+    st.dataframe(df.sort_values("Fecha")[columnas])
+
+def show_month_comparison(df):
+    monthly_spending = df.groupby("Mes_num")["Monto"].sum().reset_index()
+
+    current_month = datetime.today().month
+    last_month = current_month - 1 if current_month > 1 else 12
+
+    current_total = monthly_spending.loc[monthly_spending["Mes_num"] == current_month, "Monto"].sum()
+    last_total = monthly_spending.loc[monthly_spending["Mes_num"] == last_month, "Monto"].sum()
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("📅 Mes actual", meses_es[current_month])
+    col2.metric("💰 Gasto mes actual", f"${current_total:,.0f}", delta=f"{current_total - last_total:,.0f} vs. mes anterior")
+    col3.metric("📅 Mes anterior", meses_es[last_month])
+
+def show_categoria_presupuesto(df, presupuesto_categoria={}):
+    gasto_cat = df.groupby("Categoría")["Monto"].sum().reset_index()
+
+    data = []
+    for cat in gasto_cat["Categoría"].unique():
+        presupuesto = presupuesto_categoria.get(cat, 0.0)
+        gasto = gasto_cat.loc[gasto_cat["Categoría"] == cat, "Monto"].sum()
+
+        data.append({
+            "Categoría": cat,
+            "Presupuesto": float(presupuesto),
+            "Gasto Real": float(gasto),
+            "Diferencia": float(gasto - presupuesto)
+        })
+
+    df_presupuesto = pd.DataFrame(data)
+
+    if "Diferencia" in df_presupuesto.columns and not df_presupuesto.empty:
+        st.dataframe(df_presupuesto.style.applymap(
+            lambda val: "background-color:red; color:white" if isinstance(val, (int, float)) and val > 0 else "",
+            subset=["Diferencia"]
+        ))
     else:
-        st.warning("⚠️ No hay datos para mostrar.")
+        st.warning("⚠️ No hay datos para mostrar en la comparación de presupuesto.")
 
-# --- Pestaña Presupuesto ---
-else:
-    data_source = st.sidebar.selectbox("🔍 Selecciona fuente de datos", ["Google Sheets", "Archivo CSV", "Archivo Excel"])
-    df = pd.DataFrame()
-    sheet = None
-
-    if data_source == "Google Sheets":
-        try:
-            df, sheet = get_gsheet_data()
-        except Exception as e:
-            st.error("❌ No se pudo conectar con Google Sheets. Verifica tus credenciales o conexión.")
-            st.stop()
-
-    elif data_source == "Archivo CSV":
-        uploaded_file = st.file_uploader("📁 Cargar archivo CSV", type="csv")
-        if uploaded_file:
-            df = pd.read_csv(uploaded_file)
-
-    elif data_source == "Archivo Excel":
-        uploaded_file = st.file_uploader("📁 Cargar archivo Excel", type=["xlsx", "xls"])
-        if uploaded_file:
-            df = load_excel_data(uploaded_file)
-            df = df.loc[:, ~df.columns.duplicated()]  # ✅ Eliminar columnas duplicadas
-
-    if not df.empty:
-        df.columns = [col.strip().capitalize() for col in df.columns]
-        df.rename(columns={'Mes': 'Fecha', 'Categoria': 'Categoría', 'Concepto': 'Concepto', 'Monto': 'Monto', 'Status': 'Status'}, inplace=True)
-        df['Monto'] = pd.to_numeric(df['Monto'], errors='coerce')
-        df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
-
-        try:
-            df = clean_and_validate_data(df)
-        except ValueError as e:
-            st.error(f"❌ Error en la validación de datos: {e}")
-            st.stop()
-
-        filtro_mes = st.sidebar.multiselect("📅 Filtrar por mes", options=list(range(1, 13)), format_func=lambda x: meses_es[x])
-        if filtro_mes:
-            df = df[df["Mes_num"].isin(filtro_mes)]
-
-        show_kpis(df, topes_mensuales, filtro_mes)
-        plot_gasto_por_mes(df, filtro_mes)
-        show_monthly_topes(df, topes_mensuales, filtro_mes)
-        plot_gasto_por_categoria(df, filtro_mes)
-        show_filtered_table(df)
-        show_month_comparison(df)
-        show_categoria_presupuesto(df, presupuesto_categoria={})
-    else:
-        st.warning("⚠️ No hay datos para mostrar.")
+    return df_presupuesto
