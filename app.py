@@ -62,11 +62,19 @@ if not df.empty:
 
     elif pagina == "👥 Nóminas y Comisiones":
         st.header("📊 Análisis de Nóminas y Comisiones")
-        filtro_categoria = st.multiselect("🔍 Filtrar por categoría", options=df["Categoría"].unique())
+
+        mostrar_filtro = st.checkbox("🔲 Mostrar filtro por categoría")
+        filtro_categoria = []
+        if mostrar_filtro:
+            filtro_categoria = st.multiselect("🔍 Filtrar por categoría", options=df["Categoría"].unique())
 
         df_filtrado = df.copy()
         if filtro_categoria:
             df_filtrado = df_filtrado[df_filtrado["Categoría"].isin(filtro_categoria)]
+        if filtro_mes:
+            df_filtrado = df_filtrado[df_filtrado["Mes_num"].isin(filtro_mes)]
+        if filtro_status:
+            df_filtrado = df_filtrado[df_filtrado["Status"].str.upper().isin([s.upper() for s in filtro_status])]
 
         show_kpis(df_filtrado, topes_mensuales, filtro_mes, filtro_status)
         plot_nominas_comisiones(df_filtrado, filtro_mes, filtro_status)
